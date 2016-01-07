@@ -6,6 +6,7 @@ package main
 
 import (
 	"os"
+	"sync"
 
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
@@ -33,6 +34,8 @@ To see the list of available adb commands, type 'adb help'.
 }
 
 func runMadbExec(env *cmdline.Env, args []string) error {
+	// TODO(youngseokyoon): consider making this function generic
+
 	if err := startAdbServer(); err != nil {
 		return err
 	}
@@ -42,23 +45,35 @@ func runMadbExec(env *cmdline.Env, args []string) error {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
+
 	for _, device := range devices {
-		sh := gosh.NewShell(gosh.Opts{})
-		defer sh.Cleanup()
+		// capture the current value
+		deviceCopy := device
 
-		cmdArgs := append([]string{"-s", device}, args...)
-		cmd := sh.Cmd("adb", cmdArgs...)
-
-		// TODO(youngseokyoon): use pipes instead to prefix console messages with their device names.
-		// For now, just forward all the messages to stdout/stderr.
-		cmd.AddStdoutWriter(gosh.NopWriteCloser(os.Stdout))
-		cmd.AddStderrWriter(gosh.NopWriteCloser(os.Stderr))
-
-		cmd.Start()
-		defer cmd.Wait()
-
-		// TODO(youngseokyoon): check for exit code of each command
+		wg.Add(1)
+		go func() {
+			// TODO(youngseokyoon): handle the error returned from here.
+			runMadbExecForDevice(env, args, deviceCopy)
+			wg.Done()
+		}()
 	}
 
+	wg.Wait()
+
 	return nil
+}
+
+func runMadbExecForDevice(env *cmdline.Env, args []string, device string) error {
+	sh := gosh.NewShell(gosh.Opts{})
+	defer sh.Cleanup()
+
+	cmdArgs := append([]string{"-s", device}, args...)
+	cmd := sh.Cmd("adb", cmdArgs...)
+
+	cmd.AddStdoutWriter(newPrefixer(device, os.Stdout))
+	cmd.AddStderrWriter(newPrefixer(device, os.Stderr))
+	cmd.Run()
+
+	return sh.Err
 }
