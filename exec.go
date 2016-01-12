@@ -71,8 +71,8 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, device string) error 
 	cmdArgs := append([]string{"-s", device}, args...)
 	cmd := sh.Cmd("adb", cmdArgs...)
 
-	cmd.AddStdoutWriter(newPrefixer(device, os.Stdout))
-	cmd.AddStderrWriter(newPrefixer(device, os.Stderr))
+	cmd.AddStdoutWriter(newPrefixer(os.Stdout, device))
+	cmd.AddStderrWriter(newPrefixer(os.Stderr, device))
 	cmd.Run()
 
 	return sh.Err

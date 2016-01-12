@@ -12,7 +12,7 @@ import (
 
 func TestPrefixerSingleDevice(t *testing.T) {
 	buffer := bytes.Buffer{}
-	prefixer := newPrefixer("deviceid01", &buffer)
+	prefixer := newPrefixer(&buffer, "deviceid01")
 
 	fmt.Fprintln(prefixer, "First line.")
 	fmt.Fprintln(prefixer, "Second line.")
@@ -30,8 +30,8 @@ func TestPrefixerSingleDevice(t *testing.T) {
 func TestPrefixerTwoDevices(t *testing.T) {
 	// Two devices case
 	buffer := bytes.Buffer{}
-	prefixer1 := newPrefixer("deviceid01", &buffer)
-	prefixer2 := newPrefixer("deviceid02", &buffer)
+	prefixer1 := newPrefixer(&buffer, "deviceid01")
+	prefixer2 := newPrefixer(&buffer, "deviceid02")
 
 	fmt.Fprintf(prefixer2, "Second")
 	fmt.Fprintln(prefixer1, "First line.")
@@ -55,7 +55,7 @@ func TestPrefixerTwoDevices(t *testing.T) {
 func TestPrefixerLastLine(t *testing.T) {
 	// For the last line, a newline character should be added automatically.
 	buffer := bytes.Buffer{}
-	prefixer := newPrefixer("deviceid01", &buffer)
+	prefixer := newPrefixer(&buffer, "deviceid01")
 
 	fmt.Fprintf(prefixer, "First line.")
 	prefixer.Close()
