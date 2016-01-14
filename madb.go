@@ -17,7 +17,7 @@ import (
 )
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbExec},
+	Children: []*cmdline.Command{cmdMadbExec, cmdMadbName},
 	Name:     "madb",
 	Short:    "Multi-device Android Debug Bridge",
 	Long: `
