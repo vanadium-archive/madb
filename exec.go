@@ -10,6 +10,7 @@ import (
 
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
+	"v.io/x/lib/textutil"
 )
 
 var cmdMadbExec = &cmdline.Command{
@@ -71,9 +72,13 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, device string) error 
 	cmdArgs := append([]string{"-s", device}, args...)
 	cmd := sh.Cmd("adb", cmdArgs...)
 
-	cmd.AddStdoutWriter(newPrefixer(os.Stdout, device))
-	cmd.AddStderrWriter(newPrefixer(os.Stderr, device))
+	stdout := textutil.PrefixLineWriter(os.Stdout, "["+device+"]\t")
+	stderr := textutil.PrefixLineWriter(os.Stderr, "["+device+"]\t")
+	cmd.AddStdoutWriter(stdout)
+	cmd.AddStderrWriter(stderr)
 	cmd.Run()
+	stdout.Flush()
+	stderr.Flush()
 
 	return sh.Err
 }
