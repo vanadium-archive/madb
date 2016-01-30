@@ -14,16 +14,32 @@ func TestParseDevicesOutput(t *testing.T) {
 
 	// Normal case
 	output = `List of devices attached
-deviceid01       device usb:3-3.4.3 product:bullhead model:Nexus_5X device:bullhead
-deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
+deviceid01          device usb:3-3.4.3 product:bullhead model:Nexus_5X device:bullhead
+emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
 
 `
 
-	result, err := parseDevicesOutput(output)
+	got, err := parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
-	if got, want := result, []string{"deviceid01", "deviceid02"}; !reflect.DeepEqual(got, want) {
+
+	want := []device{
+		device{
+			Serial:     "deviceid01",
+			Type:       realDevice,
+			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
+			Nickname:   "",
+		},
+		device{
+			Serial:     "emulator-5554",
+			Type:       emulator,
+			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
+			Nickname:   "",
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -32,11 +48,11 @@ deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:gen
 
 `
 
-	result, err = parseDevicesOutput(output)
+	got, err = parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
-	if got, want := result, []string{}; !reflect.DeepEqual(got, want) {
+	if want = []device{}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -46,11 +62,57 @@ deviceid01       offline usb:3-3.4.3 product:bullhead model:Nexus_5X device:bull
 deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
 
 `
-	result, err = parseDevicesOutput(output)
+	got, err = parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
-	if got, want := result, []string{"deviceid02"}; !reflect.DeepEqual(got, want) {
+
+	want = []device{
+		device{
+			Serial:     "deviceid02",
+			Type:       realDevice,
+			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
+			Nickname:   "",
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
+	}
+
+	// In case some nicknames are defined.
+	output = `List of devices attached
+deviceid01          device usb:3-3.4.3 product:bullhead model:Nexus_5X device:bullhead
+emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
+
+	`
+
+	nsm := map[string]string{
+		"MyPhone": "deviceid01",
+		"ARMv7":   "model:sdk_phone_armv7",
+	}
+
+	got, err = parseDevicesOutput(output, nsm)
+	if err != nil {
+		t.Fatalf("failed to parse the output: %v", err)
+	}
+
+	want = []device{
+		device{
+			Serial:     "deviceid01",
+			Type:       realDevice,
+			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
+			Nickname:   "MyPhone",
+		},
+		device{
+			Serial:     "emulator-5554",
+			Type:       emulator,
+			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
+			Nickname:   "ARMv7",
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }

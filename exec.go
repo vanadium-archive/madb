@@ -41,16 +41,16 @@ func runMadbExec(env *cmdline.Env, args []string) error {
 		return err
 	}
 
-	devices, err := getDevices()
+	devices, err := getDevices(getDefaultNameFilePath())
 	if err != nil {
 		return err
 	}
 
 	wg := sync.WaitGroup{}
 
-	for _, device := range devices {
+	for _, d := range devices {
 		// capture the current value
-		deviceCopy := device
+		deviceCopy := d
 
 		wg.Add(1)
 		go func() {
@@ -65,15 +65,15 @@ func runMadbExec(env *cmdline.Env, args []string) error {
 	return nil
 }
 
-func runMadbExecForDevice(env *cmdline.Env, args []string, device string) error {
+func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
 	sh := gosh.NewShell(gosh.Opts{})
 	defer sh.Cleanup()
 
-	cmdArgs := append([]string{"-s", device}, args...)
+	cmdArgs := append([]string{"-s", d.Serial}, args...)
 	cmd := sh.Cmd("adb", cmdArgs...)
 
-	stdout := textutil.PrefixLineWriter(os.Stdout, "["+device+"]\t")
-	stderr := textutil.PrefixLineWriter(os.Stderr, "["+device+"]\t")
+	stdout := textutil.PrefixLineWriter(os.Stdout, "["+d.displayName()+"]\t")
+	stderr := textutil.PrefixLineWriter(os.Stderr, "["+d.displayName()+"]\t")
 	cmd.AddStdoutWriter(stdout)
 	cmd.AddStderrWriter(stderr)
 	cmd.Run()
