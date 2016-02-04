@@ -17,6 +17,18 @@ import (
 	"v.io/x/lib/gosh"
 )
 
+var (
+	allDevicesFlag   bool
+	allEmulatorsFlag bool
+	devicesFlag      string
+)
+
+func init() {
+	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
+	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
+	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, or nicknames (set by 'madb name').  Command will be run only on specified devices.`)
+}
+
 var cmdMadb = &cmdline.Command{
 	Children: []*cmdline.Command{cmdMadbExec, cmdMadbName},
 	Name:     "madb",
@@ -69,13 +81,13 @@ func (d device) displayName() string {
 }
 
 // Runs "adb devices -l" command, and parses the result to get all the device serial numbers.
-func getDevices(filename string) ([]device, error) {
+func getDevices(nicknameFile string) ([]device, error) {
 	sh := gosh.NewShell(gosh.Opts{})
 	defer sh.Cleanup()
 
 	output := sh.Cmd("adb", "devices", "-l").Stdout()
 
-	nsm, err := readNicknameSerialMap(filename)
+	nsm, err := readNicknameSerialMap(nicknameFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Warning: Could not read the nickname file.")
 	}
@@ -137,4 +149,74 @@ func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) 
 	}
 
 	return result, nil
+}
+
+// Gets all the devices specified by the device specifier flags.
+// Intended to be used by most of the madb sub-commands except for 'madb name'.
+func getSpecifiedDevices() ([]device, error) {
+	allDevices, err := getDevices(getDefaultNameFilePath())
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := filterSpecifiedDevices(allDevices)
+
+	if len(filtered) == 0 {
+		return nil, fmt.Errorf("No devices matching the device specifiers.")
+	}
+
+	return filtered, nil
+}
+
+func filterSpecifiedDevices(devices []device) []device {
+	// If no device specifier flags are set, run on all devices and emulators.
+	if noDevicesSpecified() {
+		return devices
+	}
+
+	result := make([]device, 0, len(devices))
+
+	for _, d := range devices {
+		if shouldIncludeDevice(d) {
+			result = append(result, d)
+		}
+	}
+
+	return result
+}
+
+func noDevicesSpecified() bool {
+	return allDevicesFlag == false &&
+		allEmulatorsFlag == false &&
+		devicesFlag == ""
+}
+
+func shouldIncludeDevice(d device) bool {
+	if allDevicesFlag && d.Type == realDevice {
+		return true
+	}
+
+	if allEmulatorsFlag && d.Type == emulator {
+		return true
+	}
+
+	tokens := strings.Split(devicesFlag, ",")
+	for _, token := range tokens {
+		// Ignore empty tokens
+		if token == "" {
+			continue
+		}
+
+		if d.Serial == token || d.Nickname == token {
+			return true
+		}
+
+		for _, qualifier := range d.Qualifiers {
+			if qualifier == token {
+				return true
+			}
+		}
+	}
+
+	return false
 }

@@ -15,10 +15,19 @@ Usage:
    madb [flags] <command>
 
 The madb commands are:
-   exec        Run the provided adb command on all the specified devices
+   exec        Run the provided adb command on all devices and emulators
                concurrently
    name        Manage device nicknames
    help        Display help for commands or topics
+
+The madb flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
 
 The global flags are:
  -metadata=<just specify -metadata to activate>
@@ -26,29 +35,41 @@ The global flags are:
  -time=false
    Dump timing information to stderr before exiting the program.
 
-Madb exec - Run the provided adb command on all the specified devices concurrently
+Madb exec - Run the provided adb command on all devices and emulators concurrently
 
-Runs the provided adb command on all the specified devices concurrently.
+Runs the provided adb command on all devices and emulators concurrently.
 
 For example, the following line:
 
     madb -a exec push ./foo.txt /sdcard/foo.txt
 
 copies the ./foo.txt file to /sdcard/foo.txt for all the currently connected
-Android devices (specified by -a flag).
+Android devices.
 
 To see the list of available adb commands, type 'adb help'.
 
 Usage:
    madb exec [flags] <command>
 
-<command> is a normal adb command, which will be executed on all the specified
-devices.
+<command> is a normal adb command, which will be executed on all devices and
+emulators.
+
+The madb exec flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
 
 Madb name - Manage device nicknames
 
 Manages device nicknames, which are meant to be more human-friendly compared to
 the device serials provided by adb tool.
+
+NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name'
+commands.
 
 Usage:
    madb name [flags] <command>
@@ -58,6 +79,15 @@ The madb name commands are:
    unset       Unset a nickname set by the 'madb name set' command.
    list        List all the existing nicknames.
    clear-all   Clear all the existing nicknames.
+
+The madb name flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
 
 Madb name set
 
@@ -92,6 +122,15 @@ Usage:
 device specifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
 <nickname> is an alpha-numeric string with no special characters or spaces.
 
+The madb name set flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
+
 Madb name unset
 
 Unsets a nickname assigned by the 'madb name set' command. Either the device
@@ -103,6 +142,15 @@ Usage:
 There should be only one argument, which is either the device serial or the
 nickname.
 
+The madb name unset flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
+
 Madb name list
 
 Lists all the currently stored nicknames of device serials.
@@ -110,12 +158,30 @@ Lists all the currently stored nicknames of device serials.
 Usage:
    madb name list [flags]
 
+The madb name list flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
+
 Madb name clear-all
 
 Clears all the currently stored nicknames of device serials.
 
 Usage:
    madb name clear-all [flags]
+
+The madb name clear-all flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
 
 Madb help - Display help for commands or topics
 
