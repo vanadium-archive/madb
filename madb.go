@@ -8,10 +8,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
@@ -30,7 +32,7 @@ func init() {
 }
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbExec, cmdMadbName},
+	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbName},
 	Name:     "madb",
 	Short:    "Multi-device Android Debug Bridge",
 	Long: `
@@ -219,4 +221,58 @@ func shouldIncludeDevice(d device) bool {
 	}
 
 	return false
+}
+
+type subCommandFunc func(env *cmdline.Env, args []string, d device) error
+
+type subCommandRunner struct {
+	subCmd subCommandFunc
+}
+
+var _ cmdline.Runner = (*subCommandRunner)(nil)
+
+// Invokes the sub command on all the devices in parallel.
+func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
+	if err := startAdbServer(); err != nil {
+		return err
+	}
+
+	devices, err := getSpecifiedDevices()
+	if err != nil {
+		return err
+	}
+
+	wg := sync.WaitGroup{}
+
+	var errs []error
+	var errDevices []device
+
+	for _, d := range devices {
+		// Capture the current value.
+		deviceCopy := d
+
+		wg.Add(1)
+		go func() {
+			// Remember the first error returned by the sub command.
+			if e := r.subCmd(env, args, deviceCopy); err == nil && e != nil {
+				errs = append(errs, e)
+				errDevices = append(errDevices, deviceCopy)
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	// Report any errors returned from the go-routines.
+	if errs != nil {
+		buffer := bytes.Buffer{}
+		buffer.WriteString("Error occurred while running the command on the following devices:")
+		for i := 0; i < len(errs); i++ {
+			buffer.WriteString("\n[" + errDevices[i].displayName() + "]\t" + errs[i].Error())
+		}
+		return fmt.Errorf(buffer.String())
+	}
+
+	return nil
 }

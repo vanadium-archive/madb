@@ -6,7 +6,6 @@ package main
 
 import (
 	"os"
-	"sync"
 
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
@@ -14,7 +13,7 @@ import (
 )
 
 var cmdMadbExec = &cmdline.Command{
-	Runner: cmdline.RunnerFunc(runMadbExec),
+	Runner: subCommandRunner{runMadbExecForDevice},
 	Name:   "exec",
 	Short:  "Run the provided adb command on all devices and emulators concurrently",
 	Long: `
@@ -32,37 +31,6 @@ To see the list of available adb commands, type 'adb help'.
 	ArgsLong: `
 <command> is a normal adb command, which will be executed on all devices and emulators.
 `,
-}
-
-func runMadbExec(env *cmdline.Env, args []string) error {
-	// TODO(youngseokyoon): consider making this function generic
-
-	if err := startAdbServer(); err != nil {
-		return err
-	}
-
-	devices, err := getSpecifiedDevices()
-	if err != nil {
-		return err
-	}
-
-	wg := sync.WaitGroup{}
-
-	for _, d := range devices {
-		// capture the current value
-		deviceCopy := d
-
-		wg.Add(1)
-		go func() {
-			// TODO(youngseokyoon): handle the error returned from here.
-			runMadbExecForDevice(env, args, deviceCopy)
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	return nil
 }
 
 func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {

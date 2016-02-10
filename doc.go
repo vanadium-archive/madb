@@ -17,6 +17,7 @@ Usage:
 The madb commands are:
    exec        Run the provided adb command on all devices and emulators
                concurrently
+   start       Launch your app on all devices
    name        Manage device nicknames
    help        Display help for commands or topics
 
@@ -55,6 +56,31 @@ Usage:
 emulators.
 
 The madb exec flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
+
+Madb start - Launch your app on all devices
+
+Launches your app on all devices.
+
+Usage:
+   madb start [flags] <application_id> <activity_name>
+
+<application_id> is usually the package name where the activities are defined.
+(See:
+http://tools.android.com/tech-docs/new-build-system/applicationid-vs-packagename)
+
+<activity_name> is the Java class name for the activity you want to launch. If
+the package name of the activity is different from the application ID, the
+activity name must be a fully-qualified name (e.g.,
+com.yourcompany.yourapp.MainActivity).
+
+The madb start flags are:
  -d=false
    Restrict the command to only run on real devices.
  -e=false
