@@ -1,0 +1,100 @@
+allprojects {
+
+    // Add the following tasks only for the project in the current directory.
+    if (project.projectDir == gradle.startParameter.currentDir) {
+
+        // An optional output file name can be specified by a Gradle command-line flag:
+        // -PmadbOutputFile=<file_name>
+        def output = project.properties.containsKey('madbOutputFile')
+            ? new File(project.properties['madbOutputFile'])
+            : null
+
+        // Empty the file, if it exists already.
+        if (output != null) {
+            output.text = ''
+        }
+
+        task madbExtractApplicationId << {
+            extract(project, {p -> getAppId(p)}, output, 'application ID')
+        }
+
+        task madbExtractMainActivity << {
+            extract(project, {p -> getMainActivity(p)}, output, 'main activity')
+        }
+    }
+
+}
+
+void extract(project, extractor, output, debugName) {
+    def id = null
+
+    // See if this project is an Android application module.
+    if (isApplicationModule(project)) {
+        id = extractor(project)
+    } else {
+        // This project is NOT an Android application module.
+        // Retrieve the id from the first application sub-module.
+        id = extractor(project.subprojects.find { isApplicationModule(it) })
+    }
+
+    if (id) {
+        if (output != null) {
+            output.append(id + '\n')
+        } else {
+            println id
+        }
+    } else {
+        throw new GradleException('Failed to extract the ' + debugName)
+    }
+}
+
+boolean isApplicationModule(project) {
+    return project.plugins.hasPlugin('com.android.application')
+}
+
+String getAppId(project) {
+    try {
+        return project.android.defaultConfig.applicationId
+    } catch (all) {
+        return null
+    }
+}
+
+String getMainActivity(project) {
+    try {
+        def manifestFile = getAndroidManifestLocation(project)
+
+        // Parse the xml file and find the main activity.
+        def manifest = new XmlSlurper().parse(manifestFile)
+        def mainActivity = manifest.application.activity.find { isMainActivity(it) }
+        def name = mainActivity.'@android:name'.text()
+
+        // If the activity name is using the shorthand syntax starting with a dot,
+        // make it a fully-qualified name by prepending it with the package name.
+        if (name.startsWith('.')) {
+            return manifest.'@package'.text() + name
+        } else {
+            return name
+        }
+    } catch (all) {
+        return null
+    }
+}
+
+File getAndroidManifestLocation(project) {
+    try {
+        return project.android.sourceSets.main.manifest.srcFile
+    } catch (all) {
+        return null
+    }
+}
+
+boolean isMainActivity(activity) {
+    try {
+        def intentFilter = activity.'intent-filter'
+        return  intentFilter.action.'@android:name'.text() == 'android.intent.action.MAIN' &&
+                intentFilter.category.'@android:name'.text() == 'android.intent.category.LAUNCHER'
+    } catch (all) {
+        return false
+    }
+}

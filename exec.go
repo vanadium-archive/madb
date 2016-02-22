@@ -5,15 +5,12 @@
 package main
 
 import (
-	"os"
-
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
-	"v.io/x/lib/textutil"
 )
 
 var cmdMadbExec = &cmdline.Command{
-	Runner: subCommandRunner{runMadbExecForDevice},
+	Runner: subCommandRunner{subCmd: runMadbExecForDevice},
 	Name:   "exec",
 	Short:  "Run the provided adb command on all devices and emulators concurrently",
 	Long: `
@@ -37,16 +34,9 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
+	sh.ContinueOnError = true
+
 	cmdArgs := append([]string{"-s", d.Serial}, args...)
 	cmd := sh.Cmd("adb", cmdArgs...)
-
-	stdout := textutil.PrefixLineWriter(os.Stdout, "["+d.displayName()+"]\t")
-	stderr := textutil.PrefixLineWriter(os.Stderr, "["+d.displayName()+"]\t")
-	cmd.AddStdoutWriter(stdout)
-	cmd.AddStderrWriter(stderr)
-	cmd.Run()
-	stdout.Flush()
-	stderr.Flush()
-
-	return nil
+	return runGoshCommandForDevice(cmd, d)
 }

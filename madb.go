@@ -10,13 +10,17 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"v.io/x/lib/cmdline"
 	"v.io/x/lib/gosh"
+	"v.io/x/lib/textutil"
 )
 
 var (
@@ -223,10 +227,15 @@ func shouldIncludeDevice(d device) bool {
 	return false
 }
 
-type subCommandFunc func(env *cmdline.Env, args []string, d device) error
-
 type subCommandRunner struct {
-	subCmd subCommandFunc
+	// init is an optional function that does some initial work that should only
+	// be performed once, before directing the command to all the devices.
+	// The returned string slice becomes the new set of arguments passed into
+	// the sub command.
+	init func(env *cmdline.Env, args []string) ([]string, error)
+	// subCmd defines the behavior of the sub command which will run on all the
+	// devices in parallel.
+	subCmd func(env *cmdline.Env, args []string, d device) error
 }
 
 var _ cmdline.Runner = (*subCommandRunner)(nil)
@@ -242,6 +251,16 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 		return err
 	}
 
+	// Run the init function when provided.
+	if r.init != nil {
+		newArgs, err := r.init(env, args)
+		if err != nil {
+			return err
+		}
+
+		args = newArgs
+	}
+
 	wg := sync.WaitGroup{}
 
 	var errs []error
@@ -253,9 +272,8 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 
 		wg.Add(1)
 		go func() {
-			// Remember the first error returned by the sub command.
-			if e := r.subCmd(env, args, deviceCopy); err == nil && e != nil {
-				errs = append(errs, e)
+			if err := r.subCmd(env, args, deviceCopy); err != nil {
+				errs = append(errs, err)
 				errDevices = append(errDevices, deviceCopy)
 			}
 			wg.Done()
@@ -275,4 +293,123 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 	}
 
 	return nil
+}
+
+func runGoshCommandForDevice(cmd *gosh.Cmd, d device) error {
+	stdout := textutil.PrefixLineWriter(os.Stdout, "["+d.displayName()+"]\t")
+	stderr := textutil.PrefixLineWriter(os.Stderr, "["+d.displayName()+"]\t")
+	cmd.AddStdoutWriter(stdout)
+	cmd.AddStderrWriter(stderr)
+	cmd.Run()
+	stdout.Flush()
+	stderr.Flush()
+
+	return cmd.Shell().Err
+}
+
+func isFlutterProject(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, "flutter.yaml"))
+	return err == nil
+}
+
+func isGradleProject(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, "build.gradle"))
+	return err == nil
+}
+
+// Looks for the Gradle wrapper script file ("gradlew"), starting from the current directory.
+func findGradleWrapper(dir string) (string, error) {
+	curDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		wrapperPath := filepath.Join(curDir, "gradlew")
+
+		// Return the path of the gradle wrapper script if it is found.
+		_, err := os.Stat(wrapperPath)
+		if err == nil {
+			// Found Gradle wrapper. Return the absolute path.
+			return wrapperPath, nil
+		} else if !os.IsNotExist(err) {
+			// This is an unexpected error and should be returned.
+			return "", err
+		}
+
+		// Search again in the parent directory.
+		parentDir := path.Dir(curDir)
+		if curDir == parentDir || parentDir == "." {
+			break
+		}
+
+		curDir = parentDir
+	}
+
+	return "", fmt.Errorf("Could not find the Gradle wrapper in dir %q or its parent directories.", dir)
+}
+
+// TODO(youngseokyoon): find a better way to distribute the gradle script.
+func findGradleInitScript(dir string) (string, error) {
+	jiriRoot := os.Getenv("JIRI_ROOT")
+	if jiriRoot == "" {
+		return "", fmt.Errorf("JIRI_ROOT environment variable is not set")
+	}
+
+	initScript := filepath.Join(jiriRoot, "release", "go", "src", "v.io", "x", "devtools", "madb", "madb_init.gradle")
+	if _, err := os.Stat(initScript); err != nil {
+		return "", err
+	}
+
+	return initScript, nil
+}
+
+func extractIdsFromGradle(dir string) (appID, activity string, err error) {
+	sh := gosh.NewShell(nil)
+	defer sh.Cleanup()
+
+	// Continue on error instead of panicking and check the sh.Err value afterwards.
+	// Gradle build will finish with exit code other than 0, when it fails.
+	// In such cases, we want to show users meaningful error messages instead of stacktraces.
+	sh.PropagateChildOutput = true
+	sh.ContinueOnError = true
+
+	wrapper, err := findGradleWrapper(dir)
+	if err != nil {
+		return
+	}
+
+	initScript, err := findGradleInitScript(dir)
+	if err != nil {
+		err = fmt.Errorf("Could not find the madb_init.gradle script: %v", err)
+		return
+	}
+
+	// Create a temporary file in which Gradle can write the results.
+	outputFile := sh.MakeTempFile()
+
+	// Run the gradle wrapper to extract the application ID and the main activity name from the build scripts.
+	cmdArgs := []string{"--daemon", "-p", dir, "-q", "-I", initScript, "-PmadbOutputFile=" + outputFile.Name(), "madbExtractApplicationId", "madbExtractMainActivity"}
+	cmd := sh.Cmd(wrapper, cmdArgs...)
+	cmd.Run()
+
+	if err = sh.Err; err != nil {
+		return
+	}
+
+	// Read what is written in the temporary file.
+	var bytes []byte
+	bytes, err = ioutil.ReadFile(outputFile.Name())
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(bytes[:]), "\n")
+	if len(lines) != 3 {
+		err = fmt.Errorf("Could not extract the application ID and the main activity name.")
+		return
+	}
+
+	appID, activity = lines[0], lines[1]
+	return
 }
