@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -15,16 +14,6 @@ import (
 type stringBoolPair struct {
 	s string
 	b bool
-}
-
-func tempFilename(t *testing.T) string {
-	f, err := ioutil.TempFile("", "madb_test")
-	if err != nil {
-		t.Fatalf("could not open a temp file: %v", err)
-	}
-	f.Close()
-
-	return f.Name()
 }
 
 func TestMadbNameSet(t *testing.T) {

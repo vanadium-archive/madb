@@ -160,7 +160,12 @@ func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) 
 // Gets all the devices specified by the device specifier flags.
 // Intended to be used by most of the madb sub-commands except for 'madb name'.
 func getSpecifiedDevices() ([]device, error) {
-	allDevices, err := getDevices(getDefaultNameFilePath())
+	nicknameFile, err := getDefaultNameFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	allDevices, err := getDevices(nicknameFile)
 	if err != nil {
 		return nil, err
 	}
@@ -225,6 +230,21 @@ func shouldIncludeDevice(d device) bool {
 	}
 
 	return false
+}
+
+// Returns the config dir located at "~/.madb"
+func getConfigDir() (string, error) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		return "", fmt.Errorf("Could not find the HOME directory.")
+	}
+
+	configDir := filepath.Join(home, ".madb")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return "", err
+	}
+
+	return configDir, nil
 }
 
 type subCommandRunner struct {
@@ -307,6 +327,41 @@ func runGoshCommandForDevice(cmd *gosh.Cmd, d device) error {
 	return cmd.Shell().Err
 }
 
+type idExtractorFunc func(variantKey) (projectIds, error)
+
+// Returns the project ids for the given build variant.  It returns the cached values when the
+// variant is found in the cache file, unless the clearCache argument is true.  Otherwise, it calls
+// extractIdsFromGradle to extract those ids by running Gradle scripts.
+func getProjectIds(extractor idExtractorFunc, key variantKey, clearCache bool, cacheFile string) (projectIds, error) {
+	if clearCache {
+		clearIDCacheEntry(key, cacheFile)
+	} else {
+		// See if the current configuration appears in the cache.
+		cache, err := getIDCache(cacheFile)
+		if err != nil {
+			return projectIds{}, err
+		}
+
+		if ids, ok := cache[key]; ok {
+			fmt.Println("NOTE: Cached IDs are being used.  Use '-clear-cache' flag to clear the cache and extract the IDs from Gradle scripts again.")
+			return ids, nil
+		}
+	}
+
+	fmt.Println("Running Gradle to extract the application ID and the main activity name...")
+	ids, err := extractor(key)
+	if err != nil {
+		return projectIds{}, err
+	}
+
+	// Write these ids to the cache.
+	if err := writeIDCacheEntry(key, ids, cacheFile); err != nil {
+		return projectIds{}, fmt.Errorf("Could not write ids to the cache file: %v", err)
+	}
+
+	return ids, nil
+}
+
 func isFlutterProject(dir string) bool {
 	_, err := os.Stat(filepath.Join(dir, "flutter.yaml"))
 	return err == nil
@@ -350,7 +405,7 @@ func findGradleWrapper(dir string) (string, error) {
 }
 
 // TODO(youngseokyoon): find a better way to distribute the gradle script.
-func findGradleInitScript(dir string) (string, error) {
+func findGradleInitScript() (string, error) {
 	jiriRoot := os.Getenv("JIRI_ROOT")
 	if jiriRoot == "" {
 		return "", fmt.Errorf("JIRI_ROOT environment variable is not set")
@@ -364,7 +419,7 @@ func findGradleInitScript(dir string) (string, error) {
 	return initScript, nil
 }
 
-func extractIdsFromGradle(dir string) (appID, activity string, err error) {
+func extractIdsFromGradle(key variantKey) (ids projectIds, err error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
@@ -374,12 +429,12 @@ func extractIdsFromGradle(dir string) (appID, activity string, err error) {
 	sh.PropagateChildOutput = true
 	sh.ContinueOnError = true
 
-	wrapper, err := findGradleWrapper(dir)
+	wrapper, err := findGradleWrapper(key.Dir)
 	if err != nil {
 		return
 	}
 
-	initScript, err := findGradleInitScript(dir)
+	initScript, err := findGradleInitScript()
 	if err != nil {
 		err = fmt.Errorf("Could not find the madb_init.gradle script: %v", err)
 		return
@@ -389,7 +444,19 @@ func extractIdsFromGradle(dir string) (appID, activity string, err error) {
 	outputFile := sh.MakeTempFile()
 
 	// Run the gradle wrapper to extract the application ID and the main activity name from the build scripts.
-	cmdArgs := []string{"--daemon", "-p", dir, "-q", "-I", initScript, "-PmadbOutputFile=" + outputFile.Name(), "madbExtractApplicationId", "madbExtractMainActivity"}
+	cmdArgs := []string{"--daemon", "-q", "-I", initScript, "-PmadbOutputFile=" + outputFile.Name()}
+
+	// Specify the project directory. If the module name is explicitly set, combine it with the base directory.
+	cmdArgs = append(cmdArgs, "-p", filepath.Join(key.Dir, key.Module))
+
+	// Specify the variant
+	if key.Variant != "" {
+		cmdArgs = append(cmdArgs, "-PmadbVariant="+key.Variant)
+	}
+
+	// Specify the tasks
+	cmdArgs = append(cmdArgs, "madbExtractApplicationId", "madbExtractMainActivity")
+
 	cmd := sh.Cmd(wrapper, cmdArgs...)
 	cmd.Run()
 
@@ -410,6 +477,6 @@ func extractIdsFromGradle(dir string) (appID, activity string, err error) {
 		return
 	}
 
-	appID, activity = lines[0], lines[1]
+	ids = projectIds{lines[0], lines[1]}
 	return
 }

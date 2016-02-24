@@ -185,8 +185,13 @@ func runMadbNameClearAll(env *cmdline.Env, args []string, filename string) error
 	return os.Remove(filename)
 }
 
-func getDefaultNameFilePath() string {
-	return filepath.Join(os.Getenv("HOME"), ".madb_names")
+func getDefaultNameFilePath() (string, error) {
+	configDir, err := getConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(configDir, "nicknames"), nil
 }
 
 func isValidDeviceSerial(serial string) bool {
@@ -262,5 +267,10 @@ type runnerFuncWithFilepath func(*cmdline.Env, []string, string) error
 // Run implements the cmdline.Runner interface by providing the default name file path
 // as the third string argument of the underlying run function.
 func (f runnerFuncWithFilepath) Run(env *cmdline.Env, args []string) error {
-	return f(env, args, getDefaultNameFilePath())
+	p, err := getDefaultNameFilePath()
+	if err != nil {
+		return err
+	}
+
+	return f(env, args, p)
 }

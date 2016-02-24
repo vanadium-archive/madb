@@ -29,12 +29,16 @@ void extract(project, extractor, output, debugName) {
     def id = null
 
     // See if this project is an Android application module.
-    if (isApplicationModule(project)) {
-        id = extractor(project)
-    } else {
-        // This project is NOT an Android application module.
-        // Retrieve the id from the first application sub-module.
-        id = extractor(project.subprojects.find { isApplicationModule(it) })
+    try {
+        if (isApplicationModule(project)) {
+            id = extractor(project)
+        } else {
+            // This project is NOT an Android application module.
+            // Retrieve the id from the first application sub-module.
+            id = extractor(project.subprojects.find { isApplicationModule(it) })
+        }
+    } catch (Throwable t) {
+        throw new GradleException('Failed to extract the ' + debugName + ': ' + t.message, t)
     }
 
     if (id) {
@@ -53,31 +57,45 @@ boolean isApplicationModule(project) {
 }
 
 String getAppId(project) {
-    try {
-        return project.android.defaultConfig.applicationId
-    } catch (all) {
-        return null
+    if (project.properties.containsKey('madbVariant')) {
+        def variantName = project.properties['madbVariant']
+        def allVariants = project.android.applicationVariants
+        def matchingVariants = allVariants.matching { variantName.equalsIgnoreCase(it.name) }
+        if (matchingVariants.size() != 1) {
+            throw new GradleException('Variant "' + variantName + '" is not found.')
+        }
+
+        def targetVariant = matchingVariants.getAt(0)
+
+        def suffix = targetVariant.buildType.applicationIdSuffix
+        if (suffix == null) {
+            suffix = ""
+        }
+
+        return targetVariant.mergedFlavor.applicationId + suffix
+    } else {
+        def targetVariant = project.android.applicationVariants.getAt(0)
+        print 'Build variant not specified.  '
+        println 'The first variant "' + targetVariant.name + '" is chosen automatically.'
+        println '(NOTE: Variant can be explicitly specified using -variant=<variant name> flag.)'
+        return project.android.applicationVariants.getAt(0).mergedFlavor.applicationId
     }
 }
 
 String getMainActivity(project) {
-    try {
-        def manifestFile = getAndroidManifestLocation(project)
+    def manifestFile = getAndroidManifestLocation(project)
 
-        // Parse the xml file and find the main activity.
-        def manifest = new XmlSlurper().parse(manifestFile)
-        def mainActivity = manifest.application.activity.find { isMainActivity(it) }
-        def name = mainActivity.'@android:name'.text()
+    // Parse the xml file and find the main activity.
+    def manifest = new XmlSlurper().parse(manifestFile)
+    def mainActivity = manifest.application.activity.find { isMainActivity(it) }
+    def name = mainActivity.'@android:name'.text()
 
-        // If the activity name is using the shorthand syntax starting with a dot,
-        // make it a fully-qualified name by prepending it with the package name.
-        if (name.startsWith('.')) {
-            return manifest.'@package'.text() + name
-        } else {
-            return name
-        }
-    } catch (all) {
-        return null
+    // If the activity name is using the shorthand syntax starting with a dot,
+    // make it a fully-qualified name by prepending it with the package name.
+    if (name.startsWith('.')) {
+        return manifest.'@package'.text() + name
+    } else {
+        return name
     }
 }
 

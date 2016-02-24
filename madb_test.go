@@ -5,10 +5,22 @@
 package main
 
 import (
-	"path"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
+
+func tempFilename(t *testing.T) string {
+	f, err := ioutil.TempFile("", "madb_test")
+	if err != nil {
+		t.Fatalf("could not open a temp file: %v", err)
+	}
+	f.Close()
+
+	return f.Name()
+}
 
 func TestParseDevicesOutput(t *testing.T) {
 	var output string
@@ -193,14 +205,14 @@ func TestIsFlutterProject(t *testing.T) {
 		projectDir string
 		want       bool
 	}{
-		{"projects/testProject", false},
-		{"projects/testProject/android", false},
-		{"projects/testProject/android/app", false},
-		{"projects/testProject/flutter", true},
+		{"testMultiPlatform", false},
+		{"testMultiPlatform/android", false},
+		{"testMultiPlatform/android/app", false},
+		{"testMultiPlatform/flutter", true},
 	}
 
 	for i, testCase := range testCases {
-		dir := path.Join("testdata", testCase.projectDir)
+		dir := filepath.Join("testdata", "projects", testCase.projectDir)
 		if got := isFlutterProject(dir); got != testCase.want {
 			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
 		}
@@ -212,14 +224,14 @@ func TestIsGradleProject(t *testing.T) {
 		projectDir string
 		want       bool
 	}{
-		{"projects/testProject", false},
-		{"projects/testProject/android", true},
-		{"projects/testProject/android/app", true},
-		{"projects/testProject/flutter", false},
+		{"testMultiPlatform", false},
+		{"testMultiPlatform/android", true},
+		{"testMultiPlatform/android/app", true},
+		{"testMultiPlatform/flutter", false},
 	}
 
 	for i, testCase := range testCases {
-		dir := path.Join("testdata", testCase.projectDir)
+		dir := filepath.Join("testdata", "projects", testCase.projectDir)
 		if got := isGradleProject(dir); got != testCase.want {
 			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
 		}
@@ -228,33 +240,104 @@ func TestIsGradleProject(t *testing.T) {
 
 func TestExtractIdsFromGradle(t *testing.T) {
 	testCases := []struct {
-		projectDir string
-		want       []string
+		key  variantKey
+		want projectIds
 	}{
 		{
-			"projects/testProject/android",
-			[]string{
-				"io.v.testProjectId",
-				"io.v.testProjectPackage.LauncherActivity",
-			}},
+			variantKey{"testMultiPlatform/android", "", ""},
+			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+		},
 		{
-			"projects/testProject/android/app",
-			[]string{
-				"io.v.testProjectId",
-				"io.v.testProjectPackage.LauncherActivity",
-			}},
+			variantKey{"testMultiPlatform/android", "app", "debug"},
+			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+		},
+		{
+			variantKey{"testMultiPlatform/android/app", "", ""},
+			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+		},
+		{
+			variantKey{"testAndroidMultiFlavor", "", ""},
+			projectIds{"io.v.testProjectId.lite", "io.v.testProjectPackage.LauncherActivity"},
+		},
+		{
+			variantKey{"testAndroidMultiFlavor", "app", "liteDebug"},
+			projectIds{"io.v.testProjectId.lite.debug", "io.v.testProjectPackage.LauncherActivity"},
+		},
+		{
+			variantKey{"testAndroidMultiFlavor/app", "", "proRelease"},
+			projectIds{"io.v.testProjectId.pro", "io.v.testProjectPackage.LauncherActivity"},
+		},
 	}
 
 	for i, testCase := range testCases {
-		dir := path.Join("testdata", testCase.projectDir)
-
-		appID, activity, err := extractIdsFromGradle(dir)
+		testCase.key.Dir = filepath.Join("testdata", "projects", testCase.key.Dir)
+		got, err := extractIdsFromGradle(testCase.key)
 		if err != nil {
 			t.Fatalf("error occurred while extracting ids for testCases[%v]: %v", i, err)
 		}
 
-		if got := []string{appID, activity}; !reflect.DeepEqual(got, testCase.want) {
+		if !reflect.DeepEqual(got, testCase.want) {
 			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
 		}
+	}
+}
+
+func TestGetProjectIds(t *testing.T) {
+	cacheFile := tempFilename(t)
+	defer os.Remove(cacheFile)
+
+	called := false
+
+	// See if it runs the extractor for the first time.
+	extractor := func(key variantKey) (projectIds, error) {
+		called = true
+		return projectIds{"testAppID", "Activity"}, nil
+	}
+
+	want := projectIds{"testAppID", "Activity"}
+	got, err := getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
+
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if !called {
+		t.Fatalf("extractor was not called when expected to be called.")
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
+	}
+
+	// The second run should not invoke the extractor.
+	called = false
+	got, err = getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
+
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if called {
+		t.Fatalf("extracted was called when not expected.")
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
+	}
+
+	// Run with clear cache flag.
+	called = false
+	got, err = getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, true, cacheFile)
+
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if !called {
+		t.Fatalf("extractor was not called when expected to be called.")
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }
