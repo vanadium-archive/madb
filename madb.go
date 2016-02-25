@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,16 +28,36 @@ var (
 	allDevicesFlag   bool
 	allEmulatorsFlag bool
 	devicesFlag      string
+
+	clearCacheFlag bool
+	moduleFlag     string
+	variantFlag    string
+
+	wd string // working directory
 )
 
 func init() {
 	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
 	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, or nicknames (set by 'madb name').  Command will be run only on specified devices.`)
+
+	// Store the current working directory.
+	var err error
+	wd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// initializes flags related to extracting and caching project ids.
+func initializeIDCacheFlags(flags *flag.FlagSet) {
+	flags.BoolVar(&clearCacheFlag, "clear-cache", false, `Clear the cache and re-extract the application ID and the main activity name.  Only takes effect when no arguments are provided.`)
+	flags.StringVar(&moduleFlag, "module", "", `Specify which application module to use, when the current directory is the top level Gradle project containing multiple sub-modules.  When not specified, the first available application module is used.  Only takes effect when no arguments are provided.`)
+	flags.StringVar(&variantFlag, "variant", "", `Specify which build variant to use.  When not specified, the first available build variant is used.  Only takes effect when no arguments are provided.`)
 }
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbName},
+	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbUninstall, cmdMadbName},
 	Name:     "madb",
 	Short:    "Multi-device Android Debug Bridge",
 	Long: `

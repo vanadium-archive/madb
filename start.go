@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"v.io/x/lib/cmdline"
@@ -14,26 +13,12 @@ import (
 )
 
 var (
-	forceStopFlag  bool
-	clearCacheFlag bool
-	moduleFlag     string
-	variantFlag    string
-
-	wd string // working directory
+	forceStopFlag bool
 )
 
 func init() {
+	initializeIDCacheFlags(&cmdMadbStart.Flags)
 	cmdMadbStart.Flags.BoolVar(&forceStopFlag, "force-stop", true, `Force stop the target app before starting the activity.`)
-	cmdMadbStart.Flags.BoolVar(&clearCacheFlag, "clear-cache", false, `Clear the cache and re-extract the application ID and the main activity name.  Only takes effect when no arguments are provided.`)
-	cmdMadbStart.Flags.StringVar(&moduleFlag, "module", "", `Specify which application module to use, when the current directory is the top level Gradle project containing multiple sub-modules.  When not specified, the first available application module is used.  Only takes effect when no arguments are provided.`)
-	cmdMadbStart.Flags.StringVar(&variantFlag, "variant", "", `Specify which build variant to use.  When not specified, the first available build variant is used.  Only takes effect when no arguments are provided.`)
-
-	// Store the current working directory.
-	var err error
-	wd, err = os.Getwd()
-	if err != nil {
-		panic(err)
-	}
 }
 
 var cmdMadbStart = &cmdline.Command{
