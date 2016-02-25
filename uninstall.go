@@ -45,33 +45,7 @@ re-extracted by clearing the cache by providing "-clear-cache" flag.
 }
 
 func initMadbUninstall(env *cmdline.Env, args []string) ([]string, error) {
-	// If the argument is provided, simply pass it through.
-	if len(args) == 1 {
-		return args, nil
-	}
-
-	if len(args) != 0 {
-		return nil, fmt.Errorf("You mush provide either zero or exactly one arguments.")
-	}
-
-	// Try to extract the application ID from the Gradle scripts.
-	if isGradleProject(wd) {
-		cacheFile, err := getDefaultCacheFilePath()
-		if err != nil {
-			return nil, err
-		}
-
-		key := variantKey{wd, moduleFlag, variantFlag}
-		ids, err := getProjectIds(extractIdsFromGradle, key, clearCacheFlag, cacheFile)
-		if err != nil {
-			return nil, err
-		}
-
-		// Use only the application ID and ignore the main activity name.
-		args = []string{ids.AppID}
-	}
-
-	return args, nil
+	return initMadbCommand(env, args, false, false)
 }
 
 func runMadbUninstallForDevice(env *cmdline.Env, args []string, d device) error {

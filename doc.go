@@ -18,6 +18,7 @@ The madb commands are:
    exec        Run the provided adb command on all devices and emulators
                concurrently
    start       Launch your app on all devices
+   stop        Stop your app on all devices
    uninstall   Uninstall your app from all devices
    name        Manage device nicknames
    help        Display help for commands or topics
@@ -104,6 +105,51 @@ The madb start flags are:
    Only takes effect when no arguments are provided.
  -force-stop=true
    Force stop the target app before starting the activity.
+ -module=
+   Specify which application module to use, when the current directory is the
+   top level Gradle project containing multiple sub-modules.  When not
+   specified, the first available application module is used.  Only takes effect
+   when no arguments are provided.
+ -variant=
+   Specify which build variant to use.  When not specified, the first available
+   build variant is used.  Only takes effect when no arguments are provided.
+
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, or nicknames (set by 'madb
+   name').  Command will be run only on specified devices.
+
+Madb stop - Stop your app on all devices
+
+Stops your app on all devices.
+
+Usage:
+   madb stop [flags] [<application_id>]
+
+<application_id> is usually the package name where the activities are defined.
+(See:
+http://tools.android.com/tech-docs/new-build-system/applicationid-vs-packagename)
+
+If the application ID is not specified, madb automatically determines which app
+to stop, based on the build scripts found in the current working directory.
+
+1) If the working directory contains a Flutter project (i.e., has
+"flutter.yaml"), this command will run "flutter stop --android-device-id=<device
+serial>" for all the specified devices.
+
+2) If the working directory contains a Gradle Android project (i.e., has
+"build.gradle"), run a small Gradle script to extract the application ID.  In
+this case, the extracted ID is cached, so that "madb stop" can be repeated
+without even running the Gradle script again. The ID can be re-extracted by
+clearing the cache by providing "-clear-cache" flag.
+
+The madb stop flags are:
+ -clear-cache=false
+   Clear the cache and re-extract the application ID and the main activity name.
+   Only takes effect when no arguments are provided.
  -module=
    Specify which application module to use, when the current directory is the
    top level Gradle project containing multiple sub-modules.  When not

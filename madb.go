@@ -57,7 +57,7 @@ func initializeIDCacheFlags(flags *flag.FlagSet) {
 }
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbUninstall, cmdMadbName},
+	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbStop, cmdMadbUninstall, cmdMadbName},
 	Name:     "madb",
 	Short:    "Multi-device Android Debug Bridge",
 	Long: `
@@ -346,6 +346,46 @@ func runGoshCommandForDevice(cmd *gosh.Cmd, d device) error {
 	stderr.Flush()
 
 	return cmd.Shell().Err
+}
+
+func initMadbCommand(env *cmdline.Env, args []string, flutterPassthrough bool, activityNameRequired bool) ([]string, error) {
+	var numRequiredArgs int
+	var requiredArgsStr string
+
+	if activityNameRequired {
+		numRequiredArgs = 2
+		requiredArgsStr = "two arguments"
+	} else {
+		numRequiredArgs = 1
+		requiredArgsStr = "one argument"
+	}
+
+	// Pass the arguments through if all the required arguments are provided, or if it is a flutter project.
+	if len(args) == numRequiredArgs || (flutterPassthrough && isFlutterProject(wd)) {
+		return args, nil
+	}
+
+	if len(args) != 0 {
+		return nil, fmt.Errorf("You mush provide either zero arguments or exactly %v.", requiredArgsStr)
+	}
+
+	// Try to extract the application ID and the main activity name from the Gradle scripts.
+	if isGradleProject(wd) {
+		cacheFile, err := getDefaultCacheFilePath()
+		if err != nil {
+			return nil, err
+		}
+
+		key := variantKey{wd, moduleFlag, variantFlag}
+		ids, err := getProjectIds(extractIdsFromGradle, key, clearCacheFlag, cacheFile)
+		if err != nil {
+			return nil, err
+		}
+
+		args = []string{ids.AppID, ids.Activity}[:numRequiredArgs]
+	}
+
+	return args, nil
 }
 
 type idExtractorFunc func(variantKey) (projectIds, error)

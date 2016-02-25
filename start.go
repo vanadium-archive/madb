@@ -56,32 +56,7 @@ running the Gradle script again.  The IDs can be re-extracted by clearing the ca
 }
 
 func initMadbStart(env *cmdline.Env, args []string) ([]string, error) {
-	// If both arguments are provided, or if it is a flutter project, simply pass the arguments through.
-	if len(args) == 2 || isFlutterProject(wd) {
-		return args, nil
-	}
-
-	if len(args) != 0 {
-		return nil, fmt.Errorf("You mush provide either zero or exactly two arguments.")
-	}
-
-	// Try to extract the application ID and the main activity name from the Gradle scripts.
-	if isGradleProject(wd) {
-		cacheFile, err := getDefaultCacheFilePath()
-		if err != nil {
-			return nil, err
-		}
-
-		key := variantKey{wd, moduleFlag, variantFlag}
-		ids, err := getProjectIds(extractIdsFromGradle, key, clearCacheFlag, cacheFile)
-		if err != nil {
-			return nil, err
-		}
-
-		args = []string{ids.AppID, ids.Activity}
-	}
-
-	return args, nil
+	return initMadbCommand(env, args, true, true)
 }
 
 func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
