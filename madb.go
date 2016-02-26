@@ -84,7 +84,7 @@ func (d device) displayName() string {
 
 // Runs "adb devices -l" command, and parses the result to get all the device serial numbers.
 func getDevices(nicknameFile string) ([]device, error) {
-	sh := gosh.NewShell(gosh.Opts{})
+	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	output := sh.Cmd("adb", "devices", "-l").Stdout()

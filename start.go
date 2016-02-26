@@ -33,7 +33,7 @@ If the package name of the activity is different from the application ID, the ac
 }
 
 func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
-	sh := gosh.NewShell(gosh.Opts{})
+	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	if len(args) != 2 {
@@ -63,5 +63,5 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
 	stdout.Flush()
 	stderr.Flush()
 
-	return sh.Err
+	return nil
 }

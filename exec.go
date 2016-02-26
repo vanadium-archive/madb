@@ -34,7 +34,7 @@ To see the list of available adb commands, type 'adb help'.
 }
 
 func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
-	sh := gosh.NewShell(gosh.Opts{})
+	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	cmdArgs := append([]string{"-s", d.Serial}, args...)
@@ -48,5 +48,5 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
 	stdout.Flush()
 	stderr.Flush()
 
-	return sh.Err
+	return nil
 }
