@@ -116,7 +116,7 @@ func getDevices(nicknameFile string) ([]device, error) {
 
 	nsm, err := readNicknameSerialMap(nicknameFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Warning: Could not read the nickname file.")
+		return nil, err
 	}
 
 	return parseDevicesOutput(output, nsm)

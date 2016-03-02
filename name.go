@@ -224,6 +224,11 @@ func readNicknameSerialMap(filename string) (map[string]string, error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
+		// Nickname file may not exist when there are no nicknames assigned, and it is not an error.
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 	defer f.Close()
