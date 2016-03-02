@@ -57,7 +57,7 @@ func initializeIDCacheFlags(flags *flag.FlagSet) {
 }
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbExec, cmdMadbStart, cmdMadbStop, cmdMadbUninstall, cmdMadbName},
+	Children: []*cmdline.Command{cmdMadbClearData, cmdMadbExec, cmdMadbName, cmdMadbStart, cmdMadbStop, cmdMadbUninstall},
 	Name:     "madb",
 	Short:    "Multi-device Android Debug Bridge",
 	Long: `
