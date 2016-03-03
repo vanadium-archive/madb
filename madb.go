@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -39,7 +40,7 @@ var (
 func init() {
 	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
-	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, or nicknames (set by 'madb name').  Command will be run only on specified devices.`)
+	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name').  A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1.  Command will be run only on specified devices.`)
 
 	// Store the current working directory.
 	var err error
@@ -95,6 +96,7 @@ type device struct {
 	Type       deviceType
 	Qualifiers []string
 	Nickname   string
+	Index      int
 }
 
 // Returns the display name which is intended to be used as the console output prefix.
@@ -135,17 +137,18 @@ func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) 
 	}
 
 	// Iterate over all the device serial numbers, starting from the second line.
-	for _, line := range lines[1:] {
+	for i, line := range lines[1:] {
 		fields := strings.Fields(line)
 
 		if len(fields) <= 1 || fields[1] == "offline" {
 			continue
 		}
 
-		// Fill in the device serial and all the qualifiers.
+		// Fill in the device serial, all the qualifiers, and the device index.
 		d := device{
 			Serial:     fields[0],
 			Qualifiers: fields[2:],
+			Index:      i + 1,
 		}
 
 		// Determine whether this device is an emulator or a real device.
@@ -191,7 +194,10 @@ func getSpecifiedDevices() ([]device, error) {
 		return nil, err
 	}
 
-	filtered := filterSpecifiedDevices(allDevices)
+	filtered, err := filterSpecifiedDevices(allDevices)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(filtered) == 0 {
 		return nil, fmt.Errorf("No devices matching the device specifiers.")
@@ -200,21 +206,42 @@ func getSpecifiedDevices() ([]device, error) {
 	return filtered, nil
 }
 
-func filterSpecifiedDevices(devices []device) []device {
+type deviceSpec struct {
+	index int
+	token string
+}
+
+func filterSpecifiedDevices(devices []device) ([]device, error) {
 	// If no device specifier flags are set, run on all devices and emulators.
 	if noDevicesSpecified() {
-		return devices
+		return devices, nil
 	}
 
 	result := make([]device, 0, len(devices))
 
+	var specs = []deviceSpec{}
+	if devicesFlag != "" {
+		tokens := strings.Split(devicesFlag, ",")
+		for _, token := range tokens {
+			if strings.HasPrefix(token, "@") {
+				index, err := strconv.Atoi(token[1:])
+				if err != nil || index <= 0 {
+					return nil, fmt.Errorf("Invalid device specifier %q. '@' sign must be followed by a numeric device index starting from 1.", token)
+				}
+				specs = append(specs, deviceSpec{index, ""})
+			} else {
+				specs = append(specs, deviceSpec{0, token})
+			}
+		}
+	}
+
 	for _, d := range devices {
-		if shouldIncludeDevice(d) {
+		if shouldIncludeDevice(d, specs) {
 			result = append(result, d)
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func noDevicesSpecified() bool {
@@ -223,7 +250,7 @@ func noDevicesSpecified() bool {
 		devicesFlag == ""
 }
 
-func shouldIncludeDevice(d device) bool {
+func shouldIncludeDevice(d device, specs []deviceSpec) bool {
 	if allDevicesFlag && d.Type == realDevice {
 		return true
 	}
@@ -232,19 +259,25 @@ func shouldIncludeDevice(d device) bool {
 		return true
 	}
 
-	tokens := strings.Split(devicesFlag, ",")
-	for _, token := range tokens {
+	for _, spec := range specs {
 		// Ignore empty tokens
-		if token == "" {
+		if spec.index == 0 && spec.token == "" {
 			continue
 		}
 
-		if d.Serial == token || d.Nickname == token {
+		if spec.index > 0 {
+			if d.Index == spec.index {
+				return true
+			}
+			continue
+		}
+
+		if d.Serial == spec.token || d.Nickname == spec.token {
 			return true
 		}
 
 		for _, qualifier := range d.Qualifiers {
-			if qualifier == token {
+			if qualifier == spec.token {
 				return true
 			}
 		}

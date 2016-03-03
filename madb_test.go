@@ -43,12 +43,14 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Type:       realDevice,
 			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 			Nickname:   "",
+			Index:      1,
 		},
 		device{
 			Serial:     "emulator-5554",
 			Type:       emulator,
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "",
+			Index:      2,
 		},
 	}
 
@@ -86,6 +88,7 @@ deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:gen
 			Type:       realDevice,
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "",
+			Index:      2,
 		},
 	}
 
@@ -116,12 +119,14 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Type:       realDevice,
 			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 			Nickname:   "MyPhone",
+			Index:      1,
 		},
 		device{
 			Serial:     "emulator-5554",
 			Type:       emulator,
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "ARMv7",
+			Index:      2,
 		},
 	}
 
@@ -137,6 +142,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Type:       realDevice,
 		Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 		Nickname:   "MyPhone",
+		Index:      1,
 	}
 
 	d2 := device{
@@ -144,6 +150,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Type:       realDevice,
 		Qualifiers: []string{"usb:3-3.4.1", "product:volantisg", "model:Nexus_9", "device:flounder_lte"},
 		Nickname:   "",
+		Index:      2,
 	}
 
 	e1 := device{
@@ -151,6 +158,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Type:       emulator,
 		Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 		Nickname:   "ARMv7",
+		Index:      3,
 	}
 
 	d3 := device{
@@ -158,6 +166,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Type:       realDevice,
 		Qualifiers: []string{"usb:3-3.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 		Nickname:   "SecondPhone",
+		Index:      4,
 	}
 
 	e2 := device{
@@ -165,6 +174,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Type:       emulator,
 		Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 		Nickname:   "",
+		Index:      5,
 	}
 
 	allDevices := []device{d1, d2, e1, d3, e2}
@@ -185,8 +195,10 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		{deviceFlags{false, true, ""}, []device{e1, e2}},                   // Only -e is specified
 		{deviceFlags{false, false, "device:bullhead"}, []device{d1, d3}},   // Device qualifier
 		{deviceFlags{false, false, "ARMv7,SecondPhone"}, []device{e1, d3}}, // Nicknames
+		{deviceFlags{false, false, "@2,@4"}, []device{d2, d3}},             // Device Indices
 		{deviceFlags{true, false, "ARMv7"}, []device{d1, d2, e1, d3}},      // Combinations
 		{deviceFlags{false, true, "model:Nexus_9"}, []device{d2, e1, e2}},  // Combinations
+		{deviceFlags{false, false, "@1,SecondPhone"}, []device{d1, d3}},    // Combinations
 	}
 
 	for i, testCase := range testCases {
@@ -194,7 +206,12 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		allEmulatorsFlag = testCase.flags.allEmulators
 		devicesFlag = testCase.flags.devices
 
-		if got := filterSpecifiedDevices(allDevices); !reflect.DeepEqual(got, testCase.want) {
+		got, err := filterSpecifiedDevices(allDevices)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+
+		if !reflect.DeepEqual(got, testCase.want) {
 			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
 		}
 	}
