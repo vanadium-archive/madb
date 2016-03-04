@@ -5,12 +5,11 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"v.io/x/lib/cmdline"
 )
@@ -22,6 +21,8 @@ var cmdMadbName = &cmdline.Command{
 	Long: `
 Manages device nicknames, which are meant to be more human-friendly compared to
 the device serials provided by adb tool.
+
+NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name' commands.
 `,
 }
 
@@ -233,16 +234,17 @@ func readNicknameSerialMap(filename string) (map[string]string, error) {
 	}
 	defer f.Close()
 
-	// TODO(youngseokyoon): use encoding/json for serialization and deserialization.
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-		if len(fields) == 2 {
-			result[fields[0]] = fields[1]
-		} else {
-			return nil, fmt.Errorf("Unexpected number of columns in the nickname file.")
+	decoder := json.NewDecoder(f)
+
+	// Decoding might fail when the nickname file is somehow corrupted, or when the schema is updated.
+	// In such cases, move on after resetting the cache file instead of exiting the app.
+	if err := decoder.Decode(&result); err != nil {
+		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the nickname file: %q.  Resetting the file.\n", err)
+		if err := os.Remove(f.Name()); err != nil {
+			return nil, err
 		}
+
+		return make(map[string]string), nil
 	}
 
 	return result, nil
@@ -257,11 +259,8 @@ func writeNicknameSerialMap(nsm map[string]string, filename string) error {
 	}
 	defer f.Close()
 
-	for nickname, serial := range nsm {
-		fmt.Fprintln(f, nickname, serial)
-	}
-
-	return nil
+	encoder := json.NewEncoder(f)
+	return encoder.Encode(nsm)
 }
 
 // runnerFuncWithFilepath is an adapter that turns the madb name subcommand functions into cmdline.Runners.

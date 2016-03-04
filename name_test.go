@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -175,57 +174,5 @@ func TestIsValidNickname(t *testing.T) {
 		if got, want := isValidNickname(tc.s), tc.b; got != want {
 			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", tc.s, got, want)
 		}
-	}
-}
-
-func TestReadNicknameSerialMap(t *testing.T) {
-	filename := tempFilename(t)
-	defer os.Remove(filename)
-
-	f, err := os.Create(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Fprintln(f, "PHONE1 SERIAL1")
-	fmt.Fprintln(f, "PHONE2 SERIAL2")
-	fmt.Fprintln(f, "PHONE3 SERIAL3")
-	f.Close()
-
-	var got map[string]string
-	if got, err = readNicknameSerialMap(filename); err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{
-		"PHONE1": "SERIAL1",
-		"PHONE2": "SERIAL2",
-		"PHONE3": "SERIAL3",
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("unmatched results: got %v, want %v", got, want)
-	}
-}
-
-func TestWriteNicknameSerialMap(t *testing.T) {
-	filename := tempFilename(t)
-	defer os.Remove(filename)
-
-	want := map[string]string{
-		"PHONE1": "SERIAL1",
-		"PHONE2": "SERIAL2",
-		"PHONE3": "SERIAL3",
-	}
-
-	if err := writeNicknameSerialMap(want, filename); err != nil {
-		t.Fatalf("could not write the map to file: %v", err)
-	}
-
-	got, err := readNicknameSerialMap(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }

@@ -120,6 +120,9 @@ Madb name - Manage device nicknames
 Manages device nicknames, which are meant to be more human-friendly compared to
 the device serials provided by adb tool.
 
+NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name'
+commands.
+
 Usage:
    madb name [flags] <command>
 
