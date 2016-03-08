@@ -28,6 +28,9 @@ var cmdMadbStart = &cmdline.Command{
 	Long: `
 Launches your app on all devices.
 
+To run your app as a specific user on a particular device, use 'madb user set' command to set the
+default user ID for that device.  (See 'madb help user' for more details.)
+
 `,
 	ArgsName: "[<application_id> <activity_name>]",
 	ArgsLong: `
@@ -80,9 +83,15 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
 		if forceStopFlag {
 			cmdArgs = append(cmdArgs, "-S")
 		}
+
+		// Specify the user ID if applicable.
+		if d.UserID != "" {
+			cmdArgs = append(cmdArgs, "--user", d.UserID)
+		}
+
 		cmdArgs = append(cmdArgs, "-n", appID+"/"+activity)
 		cmd := sh.Cmd("adb", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d)
+		return runGoshCommandForDevice(cmd, d, true)
 	}
 
 	// In case of flutter, the application ID is not even needed.
@@ -90,7 +99,7 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
 	if isFlutterProject(wd) {
 		cmdArgs := []string{"start", "--android-device-id", d.Serial}
 		cmd := sh.Cmd("flutter", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d)
+		return runGoshCommandForDevice(cmd, d, false)
 	}
 
 	return fmt.Errorf("No arguments are provided and failed to extract the ids from the build scripts.")

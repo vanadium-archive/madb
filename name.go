@@ -5,7 +5,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,14 +26,14 @@ NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name' command
 }
 
 var cmdMadbNameSet = &cmdline.Command{
-	Runner: runnerFuncWithFilepath(runMadbNameSet),
+	Runner: subCommandRunnerWithFilepath{runMadbNameSet, getDefaultNameFilePath},
 	Name:   "set",
 	Short:  "Set a nickname to be used in place of the device serial.",
 	Long: `
 Sets a human-friendly nickname that can be used when specifying the device in
 any madb commands.
 
-The device serial can be obtain using the 'adb devices -l' command.
+The device serial can be obtained using the 'adb devices -l' command.
 For example, consider the following example output:
 
     HT4BVWV00023           device usb:3-3.4.2 product:volantisg model:Nexus_9 device:flounder_lte
@@ -57,7 +56,7 @@ assigned nickname, the old one will be replaced with the newly provided one.
 `,
 	ArgsName: "<device_serial> <nickname>",
 	ArgsLong: `
-<device_serial> is a device serial (e.g., 'HT4BVWV00023') or an alternative device specifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
+<device_serial> is a device serial (e.g., 'HT4BVWV00023') or an alternative device qualifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
 <nickname> is an alpha-numeric string with no special characters or spaces.
 `,
 }
@@ -77,30 +76,30 @@ func runMadbNameSet(env *cmdline.Env, args []string, filename string) error {
 		return env.UsageErrorf("Not a valid nickname: %v", nickname)
 	}
 
-	nsm, err := readNicknameSerialMap(filename)
+	nicknameSerialMap, err := readMapFromFile(filename)
 	if err != nil {
 		return err
 	}
 
 	// If the nickname is already in use, don't allow it at all.
-	if _, present := nsm[nickname]; present {
+	if _, present := nicknameSerialMap[nickname]; present {
 		return fmt.Errorf("The provided nickname %q is already in use.", nickname)
 	}
 
 	// If the serial number already has an assigned nickname, delete it first.
 	// Need to do this check, because the nickname-serial map should be a one-to-one mapping.
-	if nn, present := reverseMap(nsm)[serial]; present {
-		delete(nsm, nn)
+	if nickname, present := reverseMap(nicknameSerialMap)[serial]; present {
+		delete(nicknameSerialMap, nickname)
 	}
 
 	// Add the nickname serial mapping.
-	nsm[nickname] = serial
+	nicknameSerialMap[nickname] = serial
 
-	return writeNicknameSerialMap(nsm, filename)
+	return writeMapToFile(nicknameSerialMap, filename)
 }
 
 var cmdMadbNameUnset = &cmdline.Command{
-	Runner: runnerFuncWithFilepath(runMadbNameUnset),
+	Runner: subCommandRunnerWithFilepath{runMadbNameUnset, getDefaultNameFilePath},
 	Name:   "unset",
 	Short:  "Unset a nickname set by the 'madb name set' command.",
 	Long: `
@@ -124,15 +123,15 @@ func runMadbNameUnset(env *cmdline.Env, args []string, filename string) error {
 		return env.UsageErrorf("Not a valid device serial or name: %v", name)
 	}
 
-	nsm, err := readNicknameSerialMap(filename)
+	nicknameSerialMap, err := readMapFromFile(filename)
 	if err != nil {
 		return err
 	}
 
 	found := false
-	for nickname, serial := range nsm {
+	for nickname, serial := range nicknameSerialMap {
 		if nickname == name || serial == name {
-			delete(nsm, nickname)
+			delete(nicknameSerialMap, nickname)
 			found = true
 			break
 		}
@@ -142,11 +141,11 @@ func runMadbNameUnset(env *cmdline.Env, args []string, filename string) error {
 		return fmt.Errorf("The provided argument is neither a known nickname nor a device serial.")
 	}
 
-	return writeNicknameSerialMap(nsm, filename)
+	return writeMapToFile(nicknameSerialMap, filename)
 }
 
 var cmdMadbNameList = &cmdline.Command{
-	Runner: runnerFuncWithFilepath(runMadbNameList),
+	Runner: subCommandRunnerWithFilepath{runMadbNameList, getDefaultNameFilePath},
 	Name:   "list",
 	Short:  "List all the existing nicknames.",
 	Long: `
@@ -155,7 +154,7 @@ Lists all the currently stored nicknames of device serials.
 }
 
 func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
-	nsm, err := readNicknameSerialMap(filename)
+	nicknameSerialMap, err := readMapFromFile(filename)
 	if err != nil {
 		return err
 	}
@@ -164,7 +163,7 @@ func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
 	fmt.Println("Serial          Nickname")
 	fmt.Println("========================")
 
-	for nickname, serial := range nsm {
+	for nickname, serial := range nicknameSerialMap {
 		fmt.Printf("%v\t%v\n", serial, nickname)
 	}
 
@@ -172,7 +171,7 @@ func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
 }
 
 var cmdMadbNameClearAll = &cmdline.Command{
-	Runner: runnerFuncWithFilepath(runMadbNameClearAll),
+	Runner: subCommandRunnerWithFilepath{runMadbNameClearAll, getDefaultNameFilePath},
 	Name:   "clear-all",
 	Short:  "Clear all the existing nicknames.",
 	Long: `
@@ -216,63 +215,4 @@ func reverseMap(source map[string]string) map[string]string {
 	}
 
 	return reversed
-}
-
-// readNicknameSerialMap reads the provided file and reconstructs the nickname => serial map.
-// The mapping is written one per each line, in the form of "<nickname> <serial>".
-func readNicknameSerialMap(filename string) (map[string]string, error) {
-	result := make(map[string]string)
-
-	f, err := os.Open(filename)
-	if err != nil {
-		// Nickname file may not exist when there are no nicknames assigned, and it is not an error.
-		if os.IsNotExist(err) {
-			return result, nil
-		}
-
-		return nil, err
-	}
-	defer f.Close()
-
-	decoder := json.NewDecoder(f)
-
-	// Decoding might fail when the nickname file is somehow corrupted, or when the schema is updated.
-	// In such cases, move on after resetting the cache file instead of exiting the app.
-	if err := decoder.Decode(&result); err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the nickname file: %q.  Resetting the file.\n", err)
-		if err := os.Remove(f.Name()); err != nil {
-			return nil, err
-		}
-
-		return make(map[string]string), nil
-	}
-
-	return result, nil
-}
-
-// writeNicknameSerialmap takes a nickname => serial map and writes it into the provided file name.
-// The mapping is written one per each line, in the form of "<nickname> <serial>".
-func writeNicknameSerialMap(nsm map[string]string, filename string) error {
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	encoder := json.NewEncoder(f)
-	return encoder.Encode(nsm)
-}
-
-// runnerFuncWithFilepath is an adapter that turns the madb name subcommand functions into cmdline.Runners.
-type runnerFuncWithFilepath func(*cmdline.Env, []string, string) error
-
-// Run implements the cmdline.Runner interface by providing the default name file path
-// as the third string argument of the underlying run function.
-func (f runnerFuncWithFilepath) Run(env *cmdline.Env, args []string) error {
-	p, err := getDefaultNameFilePath()
-	if err != nil {
-		return err
-	}
-
-	return f(env, args, p)
 }

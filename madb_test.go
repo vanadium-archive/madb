@@ -32,7 +32,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 `
 
-	got, err := parseDevicesOutput(output, nil)
+	got, err := parseDevicesOutput(output, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -44,6 +44,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 			Nickname:   "",
 			Index:      1,
+			UserID:     "",
 		},
 		device{
 			Serial:     "emulator-5554",
@@ -51,6 +52,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "",
 			Index:      2,
+			UserID:     "",
 		},
 	}
 
@@ -63,7 +65,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 `
 
-	got, err = parseDevicesOutput(output, nil)
+	got, err = parseDevicesOutput(output, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -77,7 +79,7 @@ deviceid01       offline usb:3-3.4.3 product:bullhead model:Nexus_5X device:bull
 deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
 
 `
-	got, err = parseDevicesOutput(output, nil)
+	got, err = parseDevicesOutput(output, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -89,6 +91,7 @@ deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:gen
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "",
 			Index:      2,
+			UserID:     "",
 		},
 	}
 
@@ -103,12 +106,16 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 	`
 
-	nsm := map[string]string{
+	nicknameSerialMap := map[string]string{
 		"MyPhone": "deviceid01",
 		"ARMv7":   "model:sdk_phone_armv7",
 	}
 
-	got, err = parseDevicesOutput(output, nsm)
+	serialUserMap := map[string]string{
+		"deviceid01": "10",
+	}
+
+	got, err = parseDevicesOutput(output, nicknameSerialMap, serialUserMap)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -120,6 +127,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 			Nickname:   "MyPhone",
 			Index:      1,
+			UserID:     "10",
 		},
 		device{
 			Serial:     "emulator-5554",
@@ -127,6 +135,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 			Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 			Nickname:   "ARMv7",
 			Index:      2,
+			UserID:     "",
 		},
 	}
 
@@ -143,6 +152,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Qualifiers: []string{"usb:3-3.4.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 		Nickname:   "MyPhone",
 		Index:      1,
+		UserID:     "",
 	}
 
 	d2 := device{
@@ -151,6 +161,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Qualifiers: []string{"usb:3-3.4.1", "product:volantisg", "model:Nexus_9", "device:flounder_lte"},
 		Nickname:   "",
 		Index:      2,
+		UserID:     "",
 	}
 
 	e1 := device{
@@ -159,6 +170,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 		Nickname:   "ARMv7",
 		Index:      3,
+		UserID:     "",
 	}
 
 	d3 := device{
@@ -167,6 +179,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Qualifiers: []string{"usb:3-3.3", "product:bullhead", "model:Nexus_5X", "device:bullhead"},
 		Nickname:   "SecondPhone",
 		Index:      4,
+		UserID:     "",
 	}
 
 	e2 := device{
@@ -175,6 +188,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		Qualifiers: []string{"product:sdk_phone_armv7", "model:sdk_phone_armv7", "device:generic"},
 		Nickname:   "",
 		Index:      5,
+		UserID:     "",
 	}
 
 	allDevices := []device{d1, d2, e1, d3, e2}

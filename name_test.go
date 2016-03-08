@@ -10,11 +10,6 @@ import (
 	"testing"
 )
 
-type stringBoolPair struct {
-	s string
-	b bool
-}
-
 func TestMadbNameSet(t *testing.T) {
 	filename := tempFilename(t)
 	defer os.Remove(filename)
@@ -27,7 +22,7 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readNicknameSerialMap(filename); err != nil {
+	if got, err = readMapFromFile(filename); err != nil {
 		t.Fatal(err)
 	}
 	want = map[string]string{"NICKNAME1": "SERIAL1"}
@@ -40,7 +35,7 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readNicknameSerialMap(filename); err != nil {
+	if got, err = readMapFromFile(filename); err != nil {
 		t.Fatal(err)
 	}
 	want = map[string]string{"NICKNAME1": "SERIAL1", "NICKNAME2": "SERIAL2"}
@@ -53,7 +48,7 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readNicknameSerialMap(filename); err != nil {
+	if got, err = readMapFromFile(filename); err != nil {
 		t.Fatal(err)
 	}
 	want = map[string]string{"NN1": "SERIAL1", "NICKNAME2": "SERIAL2"}
@@ -83,7 +78,7 @@ func TestMadbNameUnset(t *testing.T) {
 	if err = runMadbNameUnset(nil, []string{"SERIAL1"}, filename); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = readNicknameSerialMap(filename); err != nil {
+	if got, err = readMapFromFile(filename); err != nil {
 		t.Fatal(err)
 	}
 	want = map[string]string{"NICKNAME2": "SERIAL2", "NICKNAME3": "SERIAL3"}
@@ -95,7 +90,7 @@ func TestMadbNameUnset(t *testing.T) {
 	if err = runMadbNameUnset(nil, []string{"NICKNAME2"}, filename); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = readNicknameSerialMap(filename); err != nil {
+	if got, err = readMapFromFile(filename); err != nil {
 		t.Fatal(err)
 	}
 	want = map[string]string{"NICKNAME3": "SERIAL3"}
@@ -132,7 +127,10 @@ func TestMadbNameClearAll(t *testing.T) {
 }
 
 func TestIsValidDeviceSerial(t *testing.T) {
-	testCases := []stringBoolPair{
+	tests := []struct {
+		input string
+		want  bool
+	}{
 		// The following strings should be accepted
 		{"HT4BVWV00023", true},
 		{"01023f5e2fd2accf", true},
@@ -148,15 +146,18 @@ func TestIsValidDeviceSerial(t *testing.T) {
 		{"#not_allowed_chars~", false},
 	}
 
-	for _, tc := range testCases {
-		if got, want := isValidDeviceSerial(tc.s), tc.b; got != want {
-			t.Fatalf("unmatched results for serial '%v': got %v, want %v", tc.s, got, want)
+	for _, test := range tests {
+		if got := isValidDeviceSerial(test.input); got != test.want {
+			t.Fatalf("unmatched results for serial '%v': got %v, want %v", test.input, got, test.want)
 		}
 	}
 }
 
 func TestIsValidNickname(t *testing.T) {
-	testCases := []stringBoolPair{
+	tests := []struct {
+		input string
+		want  bool
+	}{
 		// The following strings should be accepted
 		{"Nexus5X", true},
 		{"Nexus9", true},
@@ -170,9 +171,9 @@ func TestIsValidNickname(t *testing.T) {
 		{"#not_allowed_chars~", false},
 	}
 
-	for _, tc := range testCases {
-		if got, want := isValidNickname(tc.s), tc.b; got != want {
-			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", tc.s, got, want)
+	for _, test := range tests {
+		if got := isValidNickname(test.input); got != test.want {
+			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", test.input, got, test.want)
 		}
 	}
 }

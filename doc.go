@@ -22,6 +22,7 @@ The madb commands are:
    start       Launch your app on all devices
    stop        Stop your app on all devices
    uninstall   Uninstall your app from all devices
+   user        Manage default user settings for each device
    help        Display help for commands or topics
 
 The madb flags are:
@@ -44,6 +45,10 @@ The global flags are:
 Madb clear-data - Clear your app data from all devices
 
 Clears your app data from all devices.
+
+To specify which user's data should be cleared, use 'madb user set' command to
+set the default user ID for that device.  (See 'madb help user' for more
+details.)
 
 Usage:
    madb clear-data [flags] [<application_id>]
@@ -148,8 +153,8 @@ Madb name set
 Sets a human-friendly nickname that can be used when specifying the device in
 any madb commands.
 
-The device serial can be obtain using the 'adb devices -l' command. For example,
-consider the following example output:
+The device serial can be obtained using the 'adb devices -l' command. For
+example, consider the following example output:
 
     HT4BVWV00023           device usb:3-3.4.2 product:volantisg model:Nexus_9 device:flounder_lte
 
@@ -173,7 +178,7 @@ Usage:
    madb name set [flags] <device_serial> <nickname>
 
 <device_serial> is a device serial (e.g., 'HT4BVWV00023') or an alternative
-device specifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
+device qualifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
 <nickname> is an alpha-numeric string with no special characters or spaces.
 
 The madb name set flags are:
@@ -249,6 +254,10 @@ Madb start - Launch your app on all devices
 
 Launches your app on all devices.
 
+To run your app as a specific user on a particular device, use 'madb user set'
+command to set the default user ID for that device.  (See 'madb help user' for
+more details.)
+
 Usage:
    madb start [flags] [<application_id> <activity_name>]
 
@@ -307,6 +316,10 @@ Madb stop - Stop your app on all devices
 
 Stops your app on all devices.
 
+To stop your app for a specific user on a particular device, use 'madb user set'
+command to set the default user ID for that device.  (See 'madb help user' for
+more details.)
+
 Usage:
    madb stop [flags] [<application_id>]
 
@@ -354,6 +367,10 @@ Madb uninstall - Uninstall your app from all devices
 
 Uninstall your app from all devices.
 
+To uninstall your app for a specific user on a particular device, use 'madb user
+set' command to set the default user ID for that device.  (See 'madb help user'
+for more details.)
+
 Usage:
    madb uninstall [flags] [<application_id>]
 
@@ -386,6 +403,170 @@ The madb uninstall flags are:
    Specify which build variant to use.  When not specified, the first available
    build variant is used.  Only takes effect when no arguments are provided.
 
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1.  Command will be run only on specified devices.
+
+Madb user - Manage default user settings for each device
+
+Manages default user settings for each device.
+
+An Android device can have multiple user accounts, and each user account has a
+numeric ID associated with it.  Certain adb commands accept '--user <user_id>'
+as a parameter to allow specifying which of the Android user account should be
+used when running the command.  The default behavior when the user ID is not
+provided varies by the adb command being run.
+
+Some madb commands internally run these adb commands which accept the '--user'
+flag.  You can let madb use different user IDs for different devices by storing
+the default user ID for each device using 'madb user set' command.  If the
+default user ID is not set for a particular device, madb will not provide the
+'--user' flag to the underlying adb command, and the current user will be used
+for that device as a result.
+
+Below is the list of madb commands which are affected by the default user ID
+settings:
+
+    madb clear-data
+    madb start
+    madb stop
+    madb uninstall
+
+For more details on how to obtain the user ID from an Android device, see 'madb
+user help set'.
+
+NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name'
+commands.
+
+Usage:
+   madb user [flags] <command>
+
+The madb user commands are:
+   set         Set a default user ID to be used for the given device.
+   unset       Unset the default user ID set by the 'madb user set' command.
+   list        List all the existing default user IDs.
+   clear-all   Clear all the existing default user settings.
+
+The madb user flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1.  Command will be run only on specified devices.
+
+Madb user set
+
+Sets a default user ID to be used for the specified device, when there are
+multiple user accounts on a single device.
+
+The user IDs can be obtained using the 'adb [<device_serial>] shell pm list
+users' command. Alternatively, you can use 'madb exec' if you want to specify
+the device with a nickname. For example, running the following command:
+
+    madb -n=MyPhone exec shell pm list users
+
+will list the available users and their IDs on the MyPhone device. Consider the
+following example output:
+
+    [MyPhone]       Users:
+    [MyPhone]               UserInfo{0:John Doe:13} running
+    [MyPhone]               UserInfo{10:Work profile:30} running
+
+There are two available users, "John Doe" and "Work profile". Each user is
+assigned a "user ID", which appears on the left of the user name. In this case,
+the user ID of "John Doe" is "0", and the user ID of the "Work profile" is "10".
+
+To use the "Work profile" as the default user when running madb commands on this
+device, run the following command:
+
+    madb user set MyPhone 10
+
+and then madb will use "Work profile" as the default user for device "MyPhone"
+in any of the subsequence madb commands.
+
+Usage:
+   madb user set [flags] <device_serial> <user_id>
+
+<device_serial> is the unique serial number for the device, which can be
+obtained from 'adb devices'. <user_id> is one of the user IDs obtained from 'adb
+shell pm list users' command.
+
+The madb user set flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1.  Command will be run only on specified devices.
+
+Madb user unset
+
+Unsets the default user ID assigned by the 'madb user set' command for the
+specified device.
+
+Running this command without any device specifiers will unset the default users
+only for the currently available devices and emulators, while keeping the
+default user IDs for the other devices.
+
+Usage:
+   madb user unset [flags] <device_serial>
+
+<device_serial> is the unique serial number for the device, which can be
+obtained from 'adb devices'.
+
+The madb user unset flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1.  Command will be run only on specified devices.
+
+Madb user list
+
+Lists all the currently stored default user IDs for devices.
+
+Usage:
+   madb user list [flags]
+
+The madb user list flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1.  Command will be run only on specified devices.
+
+Madb user clear-all
+
+Clears all the currently stored default user IDs for devices.
+
+This command clears the default user IDs regardless of whether the device is
+currently connected or not.
+
+Usage:
+   madb user clear-all [flags]
+
+The madb user clear-all flags are:
  -d=false
    Restrict the command to only run on real devices.
  -e=false

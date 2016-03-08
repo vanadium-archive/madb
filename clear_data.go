@@ -22,6 +22,9 @@ var cmdMadbClearData = &cmdline.Command{
 	Long: `
 Clears your app data from all devices.
 
+To specify which user's data should be cleared, use 'madb user set' command to set the default user
+ID for that device.  (See 'madb help user' for more details.)
+
 `,
 	ArgsName: "[<application_id>]",
 	ArgsLong: `
@@ -53,9 +56,16 @@ func runMadbClearDataForDevice(env *cmdline.Env, args []string, d device) error 
 		appID := args[0]
 
 		// TODO(youngseokyoon): maybe do something equivalent for flutter?
-		cmdArgs := []string{"-s", d.Serial, "shell", "pm", "clear", appID}
+		cmdArgs := []string{"-s", d.Serial, "shell", "pm", "clear"}
+
+		// Specify the user ID if applicable.
+		if d.UserID != "" {
+			cmdArgs = append(cmdArgs, "--user", d.UserID)
+		}
+		cmdArgs = append(cmdArgs, appID)
+
 		cmd := sh.Cmd("adb", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d)
+		return runGoshCommandForDevice(cmd, d, true)
 	}
 
 	return fmt.Errorf("No arguments are provided and failed to extract the id from the build scripts.")

@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -58,9 +59,17 @@ func initializeIDCacheFlags(flags *flag.FlagSet) {
 }
 
 var cmdMadb = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbClearData, cmdMadbExec, cmdMadbName, cmdMadbStart, cmdMadbStop, cmdMadbUninstall},
-	Name:     "madb",
-	Short:    "Multi-device Android Debug Bridge",
+	Children: []*cmdline.Command{
+		cmdMadbClearData,
+		cmdMadbExec,
+		cmdMadbName,
+		cmdMadbStart,
+		cmdMadbStop,
+		cmdMadbUninstall,
+		cmdMadbUser,
+	},
+	Name:  "madb",
+	Short: "Multi-device Android Debug Bridge",
 	Long: `
 Multi-device Android Debug Bridge
 
@@ -97,6 +106,7 @@ type device struct {
 	Qualifiers []string
 	Nickname   string
 	Index      int
+	UserID     string
 }
 
 // Returns the display name which is intended to be used as the console output prefix.
@@ -110,23 +120,28 @@ func (d device) displayName() string {
 }
 
 // Runs "adb devices -l" command, and parses the result to get all the device serial numbers.
-func getDevices(nicknameFile string) ([]device, error) {
+func getDevices(nicknameFile string, userFile string) ([]device, error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	output := sh.Cmd("adb", "devices", "-l").Stdout()
 
-	nsm, err := readNicknameSerialMap(nicknameFile)
+	nicknameSerialMap, err := readMapFromFile(nicknameFile)
 	if err != nil {
 		return nil, err
 	}
 
-	return parseDevicesOutput(output, nsm)
+	serialUserMap, err := readMapFromFile(userFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseDevicesOutput(output, nicknameSerialMap, serialUserMap)
 }
 
 // Parses the output generated from "adb devices -l" command and return the list of device serial numbers
 // Devices that are currently offline are excluded from the returned list.
-func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) {
+func parseDevicesOutput(output string, nicknameSerialMap map[string]string, serialUserMap map[string]string) ([]device, error) {
 	lines := strings.Split(output, "\n")
 
 	result := []device{}
@@ -161,7 +176,7 @@ func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) 
 		// Determine whether there is a nickname defined for this device,
 		// so that the console output prefix can display the nickname instead of the serial.
 	NSMLoop:
-		for nickname, serial := range nsm {
+		for nickname, serial := range nicknameSerialMap {
 			if d.Serial == serial {
 				d.Nickname = nickname
 				break
@@ -173,6 +188,11 @@ func parseDevicesOutput(output string, nsm map[string]string) ([]device, error) 
 					break NSMLoop
 				}
 			}
+		}
+
+		// Determine whether there is a default user ID set by 'madb user'.
+		if userID, ok := serialUserMap[d.Serial]; ok {
+			d.UserID = userID
 		}
 
 		result = append(result, d)
@@ -189,7 +209,12 @@ func getSpecifiedDevices() ([]device, error) {
 		return nil, err
 	}
 
-	allDevices, err := getDevices(nicknameFile)
+	userFile, err := getDefaultUserFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	allDevices, err := getDevices(nicknameFile, userFile)
 	if err != nil {
 		return nil, err
 	}
@@ -369,9 +394,16 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 	return nil
 }
 
-func runGoshCommandForDevice(cmd *gosh.Cmd, d device) error {
-	stdout := textutil.PrefixLineWriter(os.Stdout, "["+d.displayName()+"]\t")
-	stderr := textutil.PrefixLineWriter(os.Stderr, "["+d.displayName()+"]\t")
+func runGoshCommandForDevice(cmd *gosh.Cmd, d device, printUserID bool) error {
+	var prefix string
+	if printUserID && d.UserID != "" {
+		prefix = "[" + d.displayName() + ":" + d.UserID + "]\t"
+	} else {
+		prefix = "[" + d.displayName() + "]\t"
+	}
+
+	stdout := textutil.PrefixLineWriter(os.Stdout, prefix)
+	stderr := textutil.PrefixLineWriter(os.Stderr, prefix)
 	cmd.AddStdoutWriter(stdout)
 	cmd.AddStderrWriter(stderr)
 	cmd.Run()
@@ -573,4 +605,69 @@ func extractIdsFromGradle(key variantKey) (ids projectIds, err error) {
 
 	ids = projectIds{lines[0], lines[1]}
 	return
+}
+
+// readMapFromFile reads the provided file and reconstructs the string => string map.
+// When the file does not exist, it returns an empty map (instead of nil), so that callers can safely add new entries.
+func readMapFromFile(filename string) (map[string]string, error) {
+	result := make(map[string]string)
+
+	// The file may not exist or be empty when there are no stored data.
+	if stat, err := os.Stat(filename); os.IsNotExist(err) || (err == nil && stat.Size() == 0) {
+		return result, nil
+	}
+
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+
+	// Decoding might fail when the file is somehow corrupted, or when the schema is updated.
+	// In such cases, move on after resetting the cache file instead of exiting the app.
+	if err := decoder.Decode(&result); err != nil {
+		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the file: %q.  Resetting the file.\n", err)
+		if err := os.Remove(f.Name()); err != nil {
+			return nil, err
+		}
+
+		return make(map[string]string), nil
+	}
+
+	return result, nil
+}
+
+// writeMapToFile takes a string => string map and writes it into the provided file name.
+func writeMapToFile(data map[string]string, filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	encoder := json.NewEncoder(f)
+	return encoder.Encode(data)
+}
+
+type pathProvider func() (string, error)
+
+// subCommandRunnerWithFilepath is an adapter that turns the madb name/user subcommand functions into cmdline.Runners.
+type subCommandRunnerWithFilepath struct {
+	subCmd func(*cmdline.Env, []string, string) error
+	pp     pathProvider
+}
+
+var _ cmdline.Runner = (*subCommandRunnerWithFilepath)(nil)
+
+// Run implements the cmdline.Runner interface by providing the default name file path
+// as the third string argument of the underlying run function.
+func (f subCommandRunnerWithFilepath) Run(env *cmdline.Env, args []string) error {
+	p, err := f.pp()
+	if err != nil {
+		return err
+	}
+
+	return f.subCmd(env, args, p)
 }

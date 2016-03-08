@@ -38,5 +38,5 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
 
 	cmdArgs := append([]string{"-s", d.Serial}, args...)
 	cmd := sh.Cmd("adb", cmdArgs...)
-	return runGoshCommandForDevice(cmd, d)
+	return runGoshCommandForDevice(cmd, d, false)
 }

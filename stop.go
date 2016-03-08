@@ -22,6 +22,9 @@ var cmdMadbStop = &cmdline.Command{
 	Long: `
 Stops your app on all devices.
 
+To stop your app for a specific user on a particular device, use 'madb user set' command to set the
+default user ID for that device.  (See 'madb help user' for more details.)
+
 `,
 	ArgsName: "[<application_id>]",
 	ArgsLong: `
@@ -56,9 +59,16 @@ func runMadbStopForDevice(env *cmdline.Env, args []string, d device) error {
 		appID := args[0]
 
 		// More details on the "adb shell am" command can be found at: http://developer.android.com/tools/help/shell.html#am
-		cmdArgs := []string{"-s", d.Serial, "shell", "force-stop", appID}
+		cmdArgs := []string{"-s", d.Serial, "shell", "am", "force-stop"}
+
+		// Specify the user ID if applicable.
+		if d.UserID != "" {
+			cmdArgs = append(cmdArgs, "--user", d.UserID)
+		}
+
+		cmdArgs = append(cmdArgs, appID)
 		cmd := sh.Cmd("adb", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d)
+		return runGoshCommandForDevice(cmd, d, true)
 	}
 
 	// In case of flutter, the application ID is not even needed.
@@ -66,7 +76,7 @@ func runMadbStopForDevice(env *cmdline.Env, args []string, d device) error {
 	if isFlutterProject(wd) {
 		cmdArgs := []string{"stop", "--android-device-id", d.Serial}
 		cmd := sh.Cmd("flutter", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d)
+		return runGoshCommandForDevice(cmd, d, false)
 	}
 
 	return fmt.Errorf("No arguments are provided and failed to extract the id from the build scripts.")
