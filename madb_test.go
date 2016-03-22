@@ -270,63 +270,63 @@ func TestIsGradleProject(t *testing.T) {
 }
 
 func TestExtractIdsFromGradle(t *testing.T) {
-	testCases := []struct {
+	tests := []struct {
 		key  variantKey
-		want projectIds
+		want variantProperties
 	}{
 		{
 			variantKey{"testMultiPlatform/android", "", ""},
-			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 		{
 			variantKey{"testMultiPlatform/android", "app", "debug"},
-			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 		{
 			variantKey{"testMultiPlatform/android/app", "", ""},
-			projectIds{"io.v.testProjectId", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 		{
 			variantKey{"testAndroidMultiFlavor", "", ""},
-			projectIds{"io.v.testProjectId.lite", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId.lite.debug", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 		{
 			variantKey{"testAndroidMultiFlavor", "app", "liteDebug"},
-			projectIds{"io.v.testProjectId.lite.debug", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId.lite.debug", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 		{
 			variantKey{"testAndroidMultiFlavor/app", "", "proRelease"},
-			projectIds{"io.v.testProjectId.pro", "io.v.testProjectPackage.LauncherActivity"},
+			variantProperties{AppID: "io.v.testProjectId.pro", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
 	}
 
-	for i, testCase := range testCases {
-		testCase.key.Dir = filepath.Join("testdata", "projects", testCase.key.Dir)
-		got, err := extractIdsFromGradle(testCase.key)
+	for i, test := range tests {
+		test.key.Dir = filepath.Join("testdata", "projects", test.key.Dir)
+		got, err := extractPropertiesFromGradle(test.key)
 		if err != nil {
-			t.Fatalf("error occurred while extracting ids for testCases[%v]: %v", i, err)
+			t.Fatalf("error occurred while extracting properties for testCases[%v]: %v", i, err)
 		}
 
-		if !reflect.DeepEqual(got, testCase.want) {
-			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
+		if got.AppID != test.want.AppID || got.Activity != test.want.Activity {
+			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, test.want)
 		}
 	}
 }
 
-func TestGetProjectIds(t *testing.T) {
+func TestGetProjectProperties(t *testing.T) {
 	cacheFile := tempFilename(t)
 	defer os.Remove(cacheFile)
 
 	called := false
 
 	// See if it runs the extractor for the first time.
-	extractor := func(key variantKey) (projectIds, error) {
+	extractor := func(key variantKey) (variantProperties, error) {
 		called = true
-		return projectIds{"testAppID", "Activity"}, nil
+		return variantProperties{AppID: "testAppID", Activity: "Activity"}, nil
 	}
 
-	want := projectIds{"testAppID", "Activity"}
-	got, err := getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
+	want := variantProperties{AppID: "testAppID", Activity: "Activity"}
+	got, err := getProjectProperties(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
 
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -342,7 +342,7 @@ func TestGetProjectIds(t *testing.T) {
 
 	// The second run should not invoke the extractor.
 	called = false
-	got, err = getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
+	got, err = getProjectProperties(extractor, variantKey{"testDir", "mod", "var"}, false, cacheFile)
 
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -358,7 +358,7 @@ func TestGetProjectIds(t *testing.T) {
 
 	// Run with clear cache flag.
 	called = false
-	got, err = getProjectIds(extractor, variantKey{"testDir", "mod", "var"}, true, cacheFile)
+	got, err = getProjectProperties(extractor, variantKey{"testDir", "mod", "var"}, true, cacheFile)
 
 	if err != nil {
 		t.Fatalf(err.Error())

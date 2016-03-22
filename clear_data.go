@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	initializeIDCacheFlags(&cmdMadbClearData.Flags)
+	initializePropertyCacheFlags(&cmdMadbClearData.Flags)
 }
 
 var cmdMadbClearData = &cmdline.Command{
@@ -23,7 +23,7 @@ var cmdMadbClearData = &cmdline.Command{
 Clears your app data from all devices.
 
 To specify which user's data should be cleared, use 'madb user set' command to set the default user
-ID for that device.  (See 'madb help user' for more details.)
+ID for that device. (See 'madb help user' for more details.)
 
 `,
 	ArgsName: "[<application_id>]",
@@ -36,8 +36,8 @@ If the application ID is not specified, madb automatically determines which app 
 on the build scripts found in the current working directory.
 
 If the working directory contains a Gradle Android project (i.e., has "build.gradle"), run a small
-Gradle script to extract the application ID.  In this case, the extracted ID is cached, so that
-"madb clear-data" can be repeated without even running the Gradle script again.  The ID can be
+Gradle script to extract the application ID. In this case, the extracted ID is cached, so that
+"madb clear-data" can be repeated without even running the Gradle script again. The ID can be
 re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,
 }

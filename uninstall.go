@@ -16,8 +16,8 @@ var (
 )
 
 func init() {
-	initializeIDCacheFlags(&cmdMadbUninstall.Flags)
-	cmdMadbUninstall.Flags.BoolVar(&keepDataFlag, "keep-data", false, `Keep the application data and cache directories.  Equivalent to '-k' flag in 'adb uninstall' command.`)
+	initializePropertyCacheFlags(&cmdMadbUninstall.Flags)
+	cmdMadbUninstall.Flags.BoolVar(&keepDataFlag, "keep-data", false, `Keep the application data and cache directories. Equivalent to '-k' flag in 'adb uninstall' command.`)
 }
 
 var cmdMadbUninstall = &cmdline.Command{
@@ -28,7 +28,7 @@ var cmdMadbUninstall = &cmdline.Command{
 Uninstall your app from all devices.
 
 To uninstall your app for a specific user on a particular device, use 'madb user set' command to set
-the default user ID for that device.  (See 'madb help user' for more details.)
+the default user ID for that device. (See 'madb help user' for more details.)
 
 `,
 	ArgsName: "[<application_id>]",
@@ -41,8 +41,8 @@ If the application_id is not specified, madb automatically determines which app 
 on the build scripts found in the current working directory.
 
 If the working directory contains a Gradle Android project (i.e., has "build.gradle"), run a small
-Gradle script to extract the application ID.  In this case, the extracted ID is cached, so that
-"madb uninstall" can be repeated without even running the Gradle script again.  The ID can be
+Gradle script to extract the application ID. In this case, the extracted ID is cached, so that
+"madb uninstall" can be repeated without even running the Gradle script again. The ID can be
 re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,
 }

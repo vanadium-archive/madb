@@ -32,9 +32,9 @@ The madb flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 The global flags are:
  -metadata=<just specify -metadata to activate>
@@ -47,7 +47,7 @@ Madb clear-data - Clear your app data from all devices
 Clears your app data from all devices.
 
 To specify which user's data should be cleared, use 'madb user set' command to
-set the default user ID for that device.  (See 'madb help user' for more
+set the default user ID for that device. (See 'madb help user' for more
 details.)
 
 Usage:
@@ -62,23 +62,24 @@ to be cleared, based on the build scripts found in the current working
 directory.
 
 If the working directory contains a Gradle Android project (i.e., has
-"build.gradle"), run a small Gradle script to extract the application ID.  In
+"build.gradle"), run a small Gradle script to extract the application ID. In
 this case, the extracted ID is cached, so that "madb clear-data" can be repeated
-without even running the Gradle script again.  The ID can be re-extracted by
+without even running the Gradle script again. The ID can be re-extracted by
 clearing the cache by providing "-clear-cache" flag.
 
 The madb clear-data flags are:
  -clear-cache=false
-   Clear the cache and re-extract the application ID and the main activity name.
-   Only takes effect when no arguments are provided.
+   Clear the cache and re-extract the variant properties such as the application
+   ID and the main activity name. Only takes effect when no arguments are
+   provided.
  -module=
    Specify which application module to use, when the current directory is the
-   top level Gradle project containing multiple sub-modules.  When not
-   specified, the first available application module is used.  Only takes effect
-   when no arguments are provided.
+   top level Gradle project containing multiple sub-modules. When not specified,
+   the first available application module is used. Only takes effect when no
+   arguments are provided.
  -variant=
-   Specify which build variant to use.  When not specified, the first available
-   build variant is used.  Only takes effect when no arguments are provided.
+   Specify which build variant to use. When not specified, the first available
+   build variant is used. Only takes effect when no arguments are provided.
 
  -d=false
    Restrict the command to only run on real devices.
@@ -86,9 +87,9 @@ The madb clear-data flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb exec - Run the provided adb command on all devices and emulators concurrently
 
@@ -116,9 +117,9 @@ The madb exec flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb name - Manage device nicknames
 
@@ -144,9 +145,9 @@ The madb name flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb name set
 
@@ -188,9 +189,9 @@ The madb name set flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb name unset
 
@@ -210,9 +211,9 @@ The madb name unset flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb name list
 
@@ -228,9 +229,9 @@ The madb name list flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb name clear-all
 
@@ -246,16 +247,16 @@ The madb name clear-all flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb start - Launch your app on all devices
 
 Launches your app on all devices.
 
 To run your app as a specific user on a particular device, use 'madb user set'
-command to set the default user ID for that device.  (See 'madb help user' for
+command to set the default user ID for that device. (See 'madb help user' for
 more details.)
 
 Usage:
@@ -284,23 +285,24 @@ launch, based on the build scripts found in the current working directory.
 "build.gradle"), this command will run a small Gradle script to extract the
 application ID and the main activity name. In this case, the extracted IDs are
 cached, so that "madb start" can be repeated without even running the Gradle
-script again.  The IDs can be re-extracted by clearing the cache by providing
+script again. The IDs can be re-extracted by clearing the cache by providing
 "-clear-cache" flag.
 
 The madb start flags are:
  -clear-cache=false
-   Clear the cache and re-extract the application ID and the main activity name.
-   Only takes effect when no arguments are provided.
+   Clear the cache and re-extract the variant properties such as the application
+   ID and the main activity name. Only takes effect when no arguments are
+   provided.
  -force-stop=true
    Force stop the target app before starting the activity.
  -module=
    Specify which application module to use, when the current directory is the
-   top level Gradle project containing multiple sub-modules.  When not
-   specified, the first available application module is used.  Only takes effect
-   when no arguments are provided.
+   top level Gradle project containing multiple sub-modules. When not specified,
+   the first available application module is used. Only takes effect when no
+   arguments are provided.
  -variant=
-   Specify which build variant to use.  When not specified, the first available
-   build variant is used.  Only takes effect when no arguments are provided.
+   Specify which build variant to use. When not specified, the first available
+   build variant is used. Only takes effect when no arguments are provided.
 
  -d=false
    Restrict the command to only run on real devices.
@@ -308,16 +310,16 @@ The madb start flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb stop - Stop your app on all devices
 
 Stops your app on all devices.
 
 To stop your app for a specific user on a particular device, use 'madb user set'
-command to set the default user ID for that device.  (See 'madb help user' for
+command to set the default user ID for that device. (See 'madb help user' for
 more details.)
 
 Usage:
@@ -335,23 +337,24 @@ to stop, based on the build scripts found in the current working directory.
 serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has
-"build.gradle"), run a small Gradle script to extract the application ID.  In
+"build.gradle"), run a small Gradle script to extract the application ID. In
 this case, the extracted ID is cached, so that "madb stop" can be repeated
 without even running the Gradle script again. The ID can be re-extracted by
 clearing the cache by providing "-clear-cache" flag.
 
 The madb stop flags are:
  -clear-cache=false
-   Clear the cache and re-extract the application ID and the main activity name.
-   Only takes effect when no arguments are provided.
+   Clear the cache and re-extract the variant properties such as the application
+   ID and the main activity name. Only takes effect when no arguments are
+   provided.
  -module=
    Specify which application module to use, when the current directory is the
-   top level Gradle project containing multiple sub-modules.  When not
-   specified, the first available application module is used.  Only takes effect
-   when no arguments are provided.
+   top level Gradle project containing multiple sub-modules. When not specified,
+   the first available application module is used. Only takes effect when no
+   arguments are provided.
  -variant=
-   Specify which build variant to use.  When not specified, the first available
-   build variant is used.  Only takes effect when no arguments are provided.
+   Specify which build variant to use. When not specified, the first available
+   build variant is used. Only takes effect when no arguments are provided.
 
  -d=false
    Restrict the command to only run on real devices.
@@ -359,16 +362,16 @@ The madb stop flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb uninstall - Uninstall your app from all devices
 
 Uninstall your app from all devices.
 
 To uninstall your app for a specific user on a particular device, use 'madb user
-set' command to set the default user ID for that device.  (See 'madb help user'
+set' command to set the default user ID for that device. (See 'madb help user'
 for more details.)
 
 Usage:
@@ -382,26 +385,27 @@ If the application_id is not specified, madb automatically determines which app
 to uninstall, based on the build scripts found in the current working directory.
 
 If the working directory contains a Gradle Android project (i.e., has
-"build.gradle"), run a small Gradle script to extract the application ID.  In
+"build.gradle"), run a small Gradle script to extract the application ID. In
 this case, the extracted ID is cached, so that "madb uninstall" can be repeated
-without even running the Gradle script again.  The ID can be re-extracted by
+without even running the Gradle script again. The ID can be re-extracted by
 clearing the cache by providing "-clear-cache" flag.
 
 The madb uninstall flags are:
  -clear-cache=false
-   Clear the cache and re-extract the application ID and the main activity name.
-   Only takes effect when no arguments are provided.
+   Clear the cache and re-extract the variant properties such as the application
+   ID and the main activity name. Only takes effect when no arguments are
+   provided.
  -keep-data=false
-   Keep the application data and cache directories.  Equivalent to '-k' flag in
+   Keep the application data and cache directories. Equivalent to '-k' flag in
    'adb uninstall' command.
  -module=
    Specify which application module to use, when the current directory is the
-   top level Gradle project containing multiple sub-modules.  When not
-   specified, the first available application module is used.  Only takes effect
-   when no arguments are provided.
+   top level Gradle project containing multiple sub-modules. When not specified,
+   the first available application module is used. Only takes effect when no
+   arguments are provided.
  -variant=
-   Specify which build variant to use.  When not specified, the first available
-   build variant is used.  Only takes effect when no arguments are provided.
+   Specify which build variant to use. When not specified, the first available
+   build variant is used. Only takes effect when no arguments are provided.
 
  -d=false
    Restrict the command to only run on real devices.
@@ -409,23 +413,23 @@ The madb uninstall flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb user - Manage default user settings for each device
 
 Manages default user settings for each device.
 
 An Android device can have multiple user accounts, and each user account has a
-numeric ID associated with it.  Certain adb commands accept '--user <user_id>'
-as a parameter to allow specifying which of the Android user account should be
-used when running the command.  The default behavior when the user ID is not
-provided varies by the adb command being run.
+numeric ID associated with it. Certain adb commands accept '--user <user_id>' as
+a parameter to allow specifying which of the Android user account should be used
+when running the command. The default behavior when the user ID is not provided
+varies by the adb command being run.
 
 Some madb commands internally run these adb commands which accept the '--user'
-flag.  You can let madb use different user IDs for different devices by storing
-the default user ID for each device using 'madb user set' command.  If the
+flag. You can let madb use different user IDs for different devices by storing
+the default user ID for each device using 'madb user set' command. If the
 default user ID is not set for a particular device, madb will not provide the
 '--user' flag to the underlying adb command, and the current user will be used
 for that device as a result.
@@ -460,9 +464,9 @@ The madb user flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb user set
 
@@ -508,9 +512,9 @@ The madb user set flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb user unset
 
@@ -534,9 +538,9 @@ The madb user unset flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb user list
 
@@ -552,9 +556,9 @@ The madb user list flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb user clear-all
 
@@ -573,9 +577,9 @@ The madb user clear-all flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name').  A device index is specified by an
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1.  Command will be run only on specified devices.
+   command, starting from 1. Command will be run only on specified devices.
 
 Madb help - Display help for commands or topics
 

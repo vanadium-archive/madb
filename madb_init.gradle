@@ -1,85 +1,125 @@
+import groovy.json.*;
+
 allprojects {
 
-    // Add the following tasks only for the project in the current directory.
+    // Add the extract task only to the project in the current directory.
     if (project.projectDir == gradle.startParameter.currentDir) {
-
-        // An optional output file name can be specified by a Gradle command-line flag:
-        // -PmadbOutputFile=<file_name>
-        def output = project.properties.containsKey('madbOutputFile')
-            ? new File(project.properties['madbOutputFile'])
-            : null
-
-        // Empty the file, if it exists already.
-        if (output != null) {
-            output.text = ''
-        }
-
-        task madbExtractApplicationId << {
-            extract(project, {p -> getAppId(p)}, output, 'application ID')
-        }
-
-        task madbExtractMainActivity << {
-            extract(project, {p -> getMainActivity(p)}, output, 'main activity')
+        task madbExtractVariantProperties << {
+            extract(project)
         }
     }
-
 }
 
-void extract(project, extractor, output, debugName) {
-    def id = null
-
-    // See if this project is an Android application module.
-    try {
-        if (isApplicationModule(project)) {
-            id = extractor(project)
-        } else {
-            // This project is NOT an Android application module.
-            // Retrieve the id from the first application sub-module.
-            id = extractor(project.subprojects.find { isApplicationModule(it) })
-        }
-    } catch (Throwable t) {
-        throw new GradleException('Failed to extract the ' + debugName + ': ' + t.message, t)
+// Main driver of the property extraction script.
+void extract(project) {
+    project = getApplicationModule(project)
+    if (project == null) {
+        def errMsg = 'The current project is not an Android application module, '
+            + 'nor does it contain any application sub-modules. '
+            + 'Please run the madb command from an Android application project directory.'
+        throw new GradleException(errMsg)
     }
 
-    if (id) {
-        if (output != null) {
-            output.append(id + '\n')
-        } else {
-            println id
-        }
+    // Get the target variant.
+    def targetVariant = getTargetVariant(project)
+
+    // Collect the variant properties in a map, so that it can be printed out as a JSON.
+    def result = [:]
+    result['VariantName'] = targetVariant.name
+    result['AppID'] = getApplicationId(targetVariant)
+    result['Activity'] = getMainActivity(project)
+    result['AbiFilters'] = getAbiFilters(targetVariant)
+    result['VariantOutputs'] = getVariantOutputs(targetVariant)
+
+    // Format the resulting map into JSON and print it.
+    def resultJson = JsonOutput.prettyPrint(JsonOutput.toJson(result))
+    printResult(project, resultJson)
+}
+
+// Prints the given result to the desired output stream.
+// If the output file is specified, write the result to the file.
+// Otherwise, print it out to the console.
+void printResult(project, result) {
+    // An optional output file name can be specified by a Gradle command-line flag:
+    // -PmadbOutputFile=<file_name>
+    def output = project.properties.containsKey('madbOutputFile')
+        ? new File(project.properties['madbOutputFile'])
+        : null
+
+    if (output != null) {
+        // Empty the file, and then print the result.
+        output.text = ''
+        output.append(result)
     } else {
-        throw new GradleException('Failed to extract the ' + debugName)
+        println result
     }
 }
 
+// Returns an Android application module from the given project.
+// The given project is returned immediately, if itself is an application module.
+// Otherwise, the first available application sub-module is returned, if any.
+// Returns null if no Android application modules were found from the given project.
+Object getApplicationModule(project) {
+    if (isApplicationModule(project)) {
+        return project
+    }
+
+    def subApplicationModules = project.subprojects.findAll { isApplicationModule(it) }
+    if (subApplicationModules.isEmpty()) {
+        return null
+    }
+
+    def result = subApplicationModules.first()
+    if (subApplicationModules.size() > 1) {
+        print 'Multiple application sub-modules were detected. '
+        println 'The first application module "' + result.name + '" is chosen automatically.'
+        println '(NOTE: Application module can be explicitly specified using -module=<name> flag.)'
+    }
+
+    return result
+}
+
+// Returns true iff the given project is an Android application.
 boolean isApplicationModule(project) {
     return project.plugins.hasPlugin('com.android.application')
 }
 
-String getAppId(project) {
+// Returns the target application variant for the project.
+// If the 'madbVariant' property was explicitly set from the command line, the
+// matching variant is returned.
+// If there is no variant with the provided name, it throws an exception.
+//
+// If the 'madbVariant' property is not provided, the first available variant is
+// returned. Usually the first available variant would be 'debug'.
+Object getTargetVariant(project) {
+    def allVariants = project.android.applicationVariants
+
     if (project.properties.containsKey('madbVariant')) {
         def variantName = project.properties['madbVariant']
-        def allVariants = project.android.applicationVariants
-        def matchingVariants = allVariants.matching { variantName.equalsIgnoreCase(it.name) }
-        if (matchingVariants.size() != 1) {
+        def targetVariant = allVariants.find { variantName.equalsIgnoreCase(it.name) }
+        if (targetVariant == null) {
             throw new GradleException('Variant "' + variantName + '" is not found.')
         }
 
-        def targetVariant = matchingVariants.getAt(0)
-
-        def suffix = targetVariant.buildType.applicationIdSuffix
-        if (suffix == null) {
-            suffix = ""
-        }
-
-        return targetVariant.mergedFlavor.applicationId + suffix
+        return targetVariant
     } else {
-        def targetVariant = project.android.applicationVariants.getAt(0)
-        print 'Build variant not specified.  '
+        def targetVariant = allVariants.iterator().next()
+        print 'Build variant not specified. '
         println 'The first variant "' + targetVariant.name + '" is chosen automatically.'
-        println '(NOTE: Variant can be explicitly specified using -variant=<variant name> flag.)'
-        return project.android.applicationVariants.getAt(0).mergedFlavor.applicationId
+        println '(NOTE: Variant can be explicitly specified using -variant=<name> flag.)'
+
+        return targetVariant
     }
+}
+
+// Returns the application ID for the given variant.
+String getApplicationId(variant) {
+    def suffix = variant.buildType.applicationIdSuffix
+    if (suffix == null) {
+        suffix = ""
+    }
+
+    return variant.mergedFlavor.applicationId + suffix
 }
 
 String getMainActivity(project) {
@@ -99,6 +139,8 @@ String getMainActivity(project) {
     }
 }
 
+// Returns the location of the "AndroidManifest.xml" file.
+// TODO(youngseokyoon): investigate whether we can obtain the merged manifest.
 File getAndroidManifestLocation(project) {
     try {
         return project.android.sourceSets.main.manifest.srcFile
@@ -107,6 +149,7 @@ File getAndroidManifestLocation(project) {
     }
 }
 
+// Determines whether the given activity is the main activity or not.
 boolean isMainActivity(activity) {
     try {
         def intentFilter = activity.'intent-filter'
@@ -115,4 +158,32 @@ boolean isMainActivity(activity) {
     } catch (all) {
         return false
     }
+}
+
+// Returns the list of supported ABIs for the given variant.
+// Returns null if there are no ABI filters specified.
+Object getAbiFilters(variant) {
+    return variant.variantData.variantConfiguration.supportedAbis
+}
+
+// Gets the outputs and their properties of the given variant.
+// The returned object is a list of variant outputs, each of which is a map containing the
+// properties of a variant output, such as the absolute path of the .apk file, and its filters.
+Object getVariantOutputs(variant) {
+    def variantOutputs = []
+    for (def variantOutput : variant.outputs) {
+        def result = [:]
+        result['Name'] = variantOutput.name
+        result['OutputFilePath'] = variantOutput.mainOutputFile.outputFile.absolutePath
+        result['VersionCode'] = variantOutput.versionCode
+
+        def filters = []
+        for (def filter : variantOutput.mainOutputFile.filters) {
+            filters.add([FilterType: filter.filterType, Identifier: filter.identifier])
+        }
+        result['Filters'] = filters
+        variantOutputs.add(result)
+    }
+
+    return variantOutputs
 }

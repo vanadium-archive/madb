@@ -17,7 +17,7 @@ var (
 )
 
 func init() {
-	initializeIDCacheFlags(&cmdMadbStart.Flags)
+	initializePropertyCacheFlags(&cmdMadbStart.Flags)
 	cmdMadbStart.Flags.BoolVar(&forceStopFlag, "force-stop", true, `Force stop the target app before starting the activity.`)
 }
 
@@ -29,7 +29,7 @@ var cmdMadbStart = &cmdline.Command{
 Launches your app on all devices.
 
 To run your app as a specific user on a particular device, use 'madb user set' command to set the
-default user ID for that device.  (See 'madb help user' for more details.)
+default user ID for that device. (See 'madb help user' for more details.)
 
 `,
 	ArgsName: "[<application_id> <activity_name>]",
@@ -53,7 +53,7 @@ run "flutter start --android-device-id=<device serial>" for all the specified de
 2) If the working directory contains a Gradle Android project (i.e., has "build.gradle"), this
 command will run a small Gradle script to extract the application ID and the main activity name.
 In this case, the extracted IDs are cached, so that "madb start" can be repeated without even
-running the Gradle script again.  The IDs can be re-extracted by clearing the cache by providing
+running the Gradle script again. The IDs can be re-extracted by clearing the cache by providing
 "-clear-cache" flag.
 `,
 }
@@ -102,5 +102,5 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
 		return runGoshCommandForDevice(cmd, d, false)
 	}
 
-	return fmt.Errorf("No arguments are provided and failed to extract the ids from the build scripts.")
+	return fmt.Errorf("No arguments are provided and failed to extract the properties from the build scripts.")
 }

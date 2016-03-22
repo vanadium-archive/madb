@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -41,7 +40,7 @@ var (
 func init() {
 	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
-	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name').  A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1.  Command will be run only on specified devices.`)
+	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name'). A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1. Command will be run only on specified devices.`)
 
 	// Store the current working directory.
 	var err error
@@ -51,11 +50,11 @@ func init() {
 	}
 }
 
-// initializes flags related to extracting and caching project ids.
-func initializeIDCacheFlags(flags *flag.FlagSet) {
-	flags.BoolVar(&clearCacheFlag, "clear-cache", false, `Clear the cache and re-extract the application ID and the main activity name.  Only takes effect when no arguments are provided.`)
-	flags.StringVar(&moduleFlag, "module", "", `Specify which application module to use, when the current directory is the top level Gradle project containing multiple sub-modules.  When not specified, the first available application module is used.  Only takes effect when no arguments are provided.`)
-	flags.StringVar(&variantFlag, "variant", "", `Specify which build variant to use.  When not specified, the first available build variant is used.  Only takes effect when no arguments are provided.`)
+// initializePropertyCacheFlags sets up the flags related to extracting and caching project properties.
+func initializePropertyCacheFlags(flags *flag.FlagSet) {
+	flags.BoolVar(&clearCacheFlag, "clear-cache", false, `Clear the cache and re-extract the variant properties such as the application ID and the main activity name. Only takes effect when no arguments are provided.`)
+	flags.StringVar(&moduleFlag, "module", "", `Specify which application module to use, when the current directory is the top level Gradle project containing multiple sub-modules. When not specified, the first available application module is used. Only takes effect when no arguments are provided.`)
+	flags.StringVar(&variantFlag, "variant", "", `Specify which build variant to use. When not specified, the first available build variant is used. Only takes effect when no arguments are provided.`)
 }
 
 var cmdMadb = &cmdline.Command{
@@ -442,50 +441,70 @@ func initMadbCommand(env *cmdline.Env, args []string, flutterPassthrough bool, a
 		}
 
 		key := variantKey{wd, moduleFlag, variantFlag}
-		ids, err := getProjectIds(extractIdsFromGradle, key, clearCacheFlag, cacheFile)
+		properties, err := getProjectProperties(extractPropertiesFromGradle, key, clearCacheFlag, cacheFile)
 		if err != nil {
 			return nil, err
 		}
 
-		args = []string{ids.AppID, ids.Activity}[:numRequiredArgs]
+		args = []string{properties.AppID, properties.Activity}[:numRequiredArgs]
 	}
 
 	return args, nil
 }
 
-type idExtractorFunc func(variantKey) (projectIds, error)
+type variantProperties struct {
+	AppID          string
+	Activity       string
+	AbiFilters     []string
+	VariantOutputs []variantOutput
+}
 
-// Returns the project ids for the given build variant.  It returns the cached values when the
-// variant is found in the cache file, unless the clearCache argument is true.  Otherwise, it calls
-// extractIdsFromGradle to extract those ids by running Gradle scripts.
-func getProjectIds(extractor idExtractorFunc, key variantKey, clearCache bool, cacheFile string) (projectIds, error) {
+type variantOutput struct {
+	Name           string
+	OutputFilePath string
+	VersionCode    int
+	Filters        []filter
+}
+
+type filter struct {
+	FilterType string
+	Identifier string
+}
+
+type propertyExtractorFunc func(variantKey) (variantProperties, error)
+
+// getProjectProperties returns the project properties for the given build variant.
+// It returns the cached values when the variant is found in the cache file, unless the clearCache
+// argument is true. Otherwise, it calls extractPropertiesFromGradle to extract those properties by
+// running Gradle scripts.
+func getProjectProperties(extractor propertyExtractorFunc, key variantKey, clearCache bool, cacheFile string) (variantProperties, error) {
 	if clearCache {
-		clearIDCacheEntry(key, cacheFile)
+		clearPropertyCacheEntry(key, cacheFile)
 	} else {
 		// See if the current configuration appears in the cache.
-		cache, err := getIDCache(cacheFile)
+		cache, err := getPropertyCache(cacheFile)
 		if err != nil {
-			return projectIds{}, err
+			return variantProperties{}, err
 		}
 
-		if ids, ok := cache[key]; ok {
-			fmt.Println("NOTE: Cached IDs are being used.  Use '-clear-cache' flag to clear the cache and extract the IDs from Gradle scripts again.")
-			return ids, nil
+		if properties, ok := cache[key]; ok {
+			fmt.Println("NOTE: Cached IDs are being used. Use '-clear-cache' flag to clear the cache and extract the IDs from Gradle scripts again.")
+			return properties, nil
 		}
 	}
 
 	fmt.Println("Running Gradle to extract the application ID and the main activity name...")
-	ids, err := extractor(key)
+	properties, err := extractor(key)
 	if err != nil {
-		return projectIds{}, err
+		return variantProperties{}, err
 	}
 
-	// Write these ids to the cache.
-	if err := writeIDCacheEntry(key, ids, cacheFile); err != nil {
-		return projectIds{}, fmt.Errorf("Could not write ids to the cache file: %v", err)
+	// Write these properties to the cache.
+	if err := writePropertyCacheEntry(key, properties, cacheFile); err != nil {
+		return variantProperties{}, fmt.Errorf("Could not write properties to the cache file: %v", err)
 	}
 
-	return ids, nil
+	return properties, nil
 }
 
 func isFlutterProject(dir string) bool {
@@ -545,7 +564,7 @@ func findGradleInitScript() (string, error) {
 	return initScript, nil
 }
 
-func extractIdsFromGradle(key variantKey) (ids projectIds, err error) {
+func extractPropertiesFromGradle(key variantKey) (variantProperties, error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
@@ -557,13 +576,12 @@ func extractIdsFromGradle(key variantKey) (ids projectIds, err error) {
 
 	wrapper, err := findGradleWrapper(key.Dir)
 	if err != nil {
-		return
+		return variantProperties{}, err
 	}
 
 	initScript, err := findGradleInitScript()
 	if err != nil {
-		err = fmt.Errorf("Could not find the madb_init.gradle script: %v", err)
-		return
+		return variantProperties{}, fmt.Errorf("Could not find the madb_init.gradle script: %v", err)
 	}
 
 	// Create a temporary file in which Gradle can write the results.
@@ -581,30 +599,24 @@ func extractIdsFromGradle(key variantKey) (ids projectIds, err error) {
 	}
 
 	// Specify the tasks
-	cmdArgs = append(cmdArgs, "madbExtractApplicationId", "madbExtractMainActivity")
+	cmdArgs = append(cmdArgs, "madbExtractVariantProperties")
 
 	cmd := sh.Cmd(wrapper, cmdArgs...)
 	cmd.Run()
 
 	if err = sh.Err; err != nil {
-		return
+		return variantProperties{}, err
 	}
 
 	// Read what is written in the temporary file.
-	var bytes []byte
-	bytes, err = ioutil.ReadFile(outputFile.Name())
-	if err != nil {
-		return
+	// The file must be in JSON format.
+	result := variantProperties{}
+	decoder := json.NewDecoder(outputFile)
+	if err = decoder.Decode(&result); err != nil {
+		return variantProperties{}, fmt.Errorf("Could not extract the application ID and the main activity name: %v", err)
 	}
 
-	lines := strings.Split(string(bytes[:]), "\n")
-	if len(lines) != 3 {
-		err = fmt.Errorf("Could not extract the application ID and the main activity name.")
-		return
-	}
-
-	ids = projectIds{lines[0], lines[1]}
-	return
+	return result, nil
 }
 
 // readMapFromFile reads the provided file and reconstructs the string => string map.
@@ -628,7 +640,7 @@ func readMapFromFile(filename string) (map[string]string, error) {
 	// Decoding might fail when the file is somehow corrupted, or when the schema is updated.
 	// In such cases, move on after resetting the cache file instead of exiting the app.
 	if err := decoder.Decode(&result); err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the file: %q.  Resetting the file.\n", err)
+		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the file: %q. Resetting the file.\n", err)
 		if err := os.Remove(f.Name()); err != nil {
 			return nil, err
 		}

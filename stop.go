@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	initializeIDCacheFlags(&cmdMadbStop.Flags)
+	initializePropertyCacheFlags(&cmdMadbStop.Flags)
 }
 
 var cmdMadbStop = &cmdline.Command{
@@ -23,7 +23,7 @@ var cmdMadbStop = &cmdline.Command{
 Stops your app on all devices.
 
 To stop your app for a specific user on a particular device, use 'madb user set' command to set the
-default user ID for that device.  (See 'madb help user' for more details.)
+default user ID for that device. (See 'madb help user' for more details.)
 
 `,
 	ArgsName: "[<application_id>]",
@@ -39,7 +39,7 @@ the build scripts found in the current working directory.
 run "flutter stop --android-device-id=<device serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has "build.gradle"), run a
-small Gradle script to extract the application ID.  In this case, the extracted ID is cached, so
+small Gradle script to extract the application ID. In this case, the extracted ID is cached, so
 that "madb stop" can be repeated without even running the Gradle script again. The ID can be
 re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,

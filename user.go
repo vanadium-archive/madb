@@ -22,13 +22,13 @@ var cmdMadbUser = &cmdline.Command{
 Manages default user settings for each device.
 
 An Android device can have multiple user accounts, and each user account has a numeric ID associated
-with it.  Certain adb commands accept '--user <user_id>' as a parameter to allow specifying which of
-the Android user account should be used when running the command.  The default behavior when the
+with it. Certain adb commands accept '--user <user_id>' as a parameter to allow specifying which of
+the Android user account should be used when running the command. The default behavior when the
 user ID is not provided varies by the adb command being run.
 
-Some madb commands internally run these adb commands which accept the '--user' flag.  You can let
+Some madb commands internally run these adb commands which accept the '--user' flag. You can let
 madb use different user IDs for different devices by storing the default user ID for each device
-using 'madb user set' command.  If the default user ID is not set for a particular device, madb will
+using 'madb user set' command. If the default user ID is not set for a particular device, madb will
 not provide the '--user' flag to the underlying adb command, and the current user will be used for
 that device as a result.
 
