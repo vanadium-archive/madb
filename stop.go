@@ -16,7 +16,7 @@ func init() {
 }
 
 var cmdMadbStop = &cmdline.Command{
-	Runner: subCommandRunner{initMadbStart, runMadbStartForDevice},
+	Runner: subCommandRunner{initMadbStop, runMadbStopForDevice, true},
 	Name:   "stop",
 	Short:  "Stop your app on all devices",
 	Long: `
@@ -45,17 +45,17 @@ re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,
 }
 
-func initMadbStop(env *cmdline.Env, args []string) ([]string, error) {
-	return initMadbCommand(env, args, true, false)
+func initMadbStop(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	return initMadbCommand(env, args, properties, true, false)
 }
 
-func runMadbStopForDevice(env *cmdline.Env, args []string, d device) error {
+func runMadbStopForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	sh.ContinueOnError = true
 
-	if len(args) == 2 {
+	if len(args) == 1 {
 		appID := args[0]
 
 		// More details on the "adb shell am" command can be found at: http://developer.android.com/tools/help/shell.html#am

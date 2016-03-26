@@ -18,6 +18,7 @@ The madb commands are:
    clear-data  Clear your app data from all devices
    exec        Run the provided adb command on all devices and emulators
                concurrently
+   install     Install your app on all devices
    name        Manage device nicknames
    start       Launch your app on all devices
    stop        Stop your app on all devices
@@ -111,6 +112,61 @@ Usage:
 emulators.
 
 The madb exec flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1. Command will be run only on specified devices.
+
+Madb install - Install your app on all devices
+
+Installs your app on all devices.
+
+To install your app for a specific user on a particular device, use 'madb user
+set' command to set the default user ID for that device. (See 'madb help user'
+for more details.)
+
+If the working directory contains a Gradle Android project (i.e., has
+"build.gradle"), this command will run a small Gradle script to extract the
+variant properties, which will be used to find the best matching .apk for each
+device.
+
+In this case, the extracted properties are cached, so that "madb install" can be
+repeated without even running the Gradle script again. The IDs can be
+re-extracted by clearing the cache by providing "-clear-cache" flag.
+
+This command is similar to running "gradlew :<moduleName>:<variantName>Install",
+but the gradle command is limited in that 1) it always installs the app to all
+connected devices, and 2) it installs the app on one device at a time
+sequentially.
+
+To install a specific .apk file to all devices, use "madb exec install
+<path_to_apk>" instead.
+
+Usage:
+   madb install [flags]
+
+The madb install flags are:
+ -clear-cache=false
+   Clear the cache and re-extract the variant properties such as the application
+   ID and the main activity name. Only takes effect when no arguments are
+   provided.
+ -module=
+   Specify which application module to use, when the current directory is the
+   top level Gradle project containing multiple sub-modules. When not specified,
+   the first available application module is used. Only takes effect when no
+   arguments are provided.
+ -r=true
+   Replace the existing application. Same effect as the '-r' flag of 'adb
+   install' command.
+ -variant=
+   Specify which build variant to use. When not specified, the first available
+   build variant is used. Only takes effect when no arguments are provided.
+
  -d=false
    Restrict the command to only run on real devices.
  -e=false

@@ -30,7 +30,7 @@ To see the list of available adb commands, type 'adb help'.
 `,
 }
 
-func runMadbExecForDevice(env *cmdline.Env, args []string, d device) error {
+func runMadbExecForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 

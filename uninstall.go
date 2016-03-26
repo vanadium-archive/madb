@@ -21,7 +21,7 @@ func init() {
 }
 
 var cmdMadbUninstall = &cmdline.Command{
-	Runner: subCommandRunner{initMadbUninstall, runMadbUninstallForDevice},
+	Runner: subCommandRunner{initMadbUninstall, runMadbUninstallForDevice, true},
 	Name:   "uninstall",
 	Short:  "Uninstall your app from all devices",
 	Long: `
@@ -47,11 +47,11 @@ re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,
 }
 
-func initMadbUninstall(env *cmdline.Env, args []string) ([]string, error) {
-	return initMadbCommand(env, args, false, false)
+func initMadbUninstall(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	return initMadbCommand(env, args, properties, false, false)
 }
 
-func runMadbUninstallForDevice(env *cmdline.Env, args []string, d device) error {
+func runMadbUninstallForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 

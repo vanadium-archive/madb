@@ -61,6 +61,7 @@ var cmdMadb = &cmdline.Command{
 	Children: []*cmdline.Command{
 		cmdMadbClearData,
 		cmdMadbExec,
+		cmdMadbInstall,
 		cmdMadbName,
 		cmdMadbStart,
 		cmdMadbStop,
@@ -330,10 +331,13 @@ type subCommandRunner struct {
 	// be performed once, before directing the command to all the devices.
 	// The returned string slice becomes the new set of arguments passed into
 	// the sub command.
-	init func(env *cmdline.Env, args []string) ([]string, error)
+	init func(env *cmdline.Env, args []string, properties variantProperties) ([]string, error)
 	// subCmd defines the behavior of the sub command which will run on all the
 	// devices in parallel.
-	subCmd func(env *cmdline.Env, args []string, d device) error
+	subCmd func(env *cmdline.Env, args []string, d device, properties variantProperties) error
+	// extractProperties indicates whether this subCommand needs the extracted
+	// project properties.
+	extractProperties bool
 }
 
 var _ cmdline.Runner = (*subCommandRunner)(nil)
@@ -349,9 +353,18 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 		return err
 	}
 
+	// Extract the properties if needed.
+	properties := variantProperties{}
+	if r.extractProperties && isGradleProject(wd) {
+		properties, err = getProjectPropertiesUsingDefaultCache()
+		if err != nil {
+			return err
+		}
+	}
+
 	// Run the init function when provided.
 	if r.init != nil {
-		newArgs, err := r.init(env, args)
+		newArgs, err := r.init(env, args, properties)
 		if err != nil {
 			return err
 		}
@@ -370,7 +383,7 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 
 		wg.Add(1)
 		go func() {
-			if err := r.subCmd(env, args, deviceCopy); err != nil {
+			if err := r.subCmd(env, args, deviceCopy, properties); err != nil {
 				errs = append(errs, err)
 				errDevices = append(errDevices, deviceCopy)
 			}
@@ -412,7 +425,7 @@ func runGoshCommandForDevice(cmd *gosh.Cmd, d device, printUserID bool) error {
 	return cmd.Shell().Err
 }
 
-func initMadbCommand(env *cmdline.Env, args []string, flutterPassthrough bool, activityNameRequired bool) ([]string, error) {
+func initMadbCommand(env *cmdline.Env, args []string, properties variantProperties, flutterPassthrough bool, activityNameRequired bool) ([]string, error) {
 	var numRequiredArgs int
 	var requiredArgsStr string
 
@@ -435,21 +448,20 @@ func initMadbCommand(env *cmdline.Env, args []string, flutterPassthrough bool, a
 
 	// Try to extract the application ID and the main activity name from the Gradle scripts.
 	if isGradleProject(wd) {
-		cacheFile, err := getDefaultCacheFilePath()
-		if err != nil {
-			return nil, err
-		}
-
-		key := variantKey{wd, moduleFlag, variantFlag}
-		properties, err := getProjectProperties(extractPropertiesFromGradle, key, clearCacheFlag, cacheFile)
-		if err != nil {
-			return nil, err
-		}
-
 		args = []string{properties.AppID, properties.Activity}[:numRequiredArgs]
 	}
 
 	return args, nil
+}
+
+func getProjectPropertiesUsingDefaultCache() (variantProperties, error) {
+	cacheFile, err := getDefaultCacheFilePath()
+	if err != nil {
+		return variantProperties{}, err
+	}
+
+	key := variantKey{wd, moduleFlag, variantFlag}
+	return getProjectProperties(extractPropertiesFromGradle, key, clearCacheFlag, cacheFile)
 }
 
 type variantProperties struct {

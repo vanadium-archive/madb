@@ -16,7 +16,7 @@ func init() {
 }
 
 var cmdMadbClearData = &cmdline.Command{
-	Runner: subCommandRunner{initMadbClearData, runMadbClearDataForDevice},
+	Runner: subCommandRunner{initMadbClearData, runMadbClearDataForDevice, true},
 	Name:   "clear-data",
 	Short:  "Clear your app data from all devices",
 	Long: `
@@ -42,11 +42,11 @@ re-extracted by clearing the cache by providing "-clear-cache" flag.
 `,
 }
 
-func initMadbClearData(env *cmdline.Env, args []string) ([]string, error) {
-	return initMadbCommand(env, args, false, false)
+func initMadbClearData(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	return initMadbCommand(env, args, properties, false, false)
 }
 
-func runMadbClearDataForDevice(env *cmdline.Env, args []string, d device) error {
+func runMadbClearDataForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 

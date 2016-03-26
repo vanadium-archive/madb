@@ -22,7 +22,7 @@ func init() {
 }
 
 var cmdMadbStart = &cmdline.Command{
-	Runner: subCommandRunner{initMadbStart, runMadbStartForDevice},
+	Runner: subCommandRunner{initMadbStart, runMadbStartForDevice, true},
 	Name:   "start",
 	Short:  "Launch your app on all devices",
 	Long: `
@@ -58,11 +58,11 @@ running the Gradle script again. The IDs can be re-extracted by clearing the cac
 `,
 }
 
-func initMadbStart(env *cmdline.Env, args []string) ([]string, error) {
-	return initMadbCommand(env, args, true, true)
+func initMadbStart(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	return initMadbCommand(env, args, properties, true, true)
 }
 
-func runMadbStartForDevice(env *cmdline.Env, args []string, d device) error {
+func runMadbStartForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
