@@ -78,9 +78,10 @@ func runMadbInstallForDevice(env *cmdline.Env, args []string, d device, properti
 		return runGoshCommandForDevice(cmd, d, true)
 	}
 
-	// TOOD(youngseokyoon): support Flutter projects.
 	if isFlutterProject(wd) {
-		return fmt.Errorf("Not implemented for flutter yet.")
+		cmdArgs := []string{"install", "--device-id", d.Serial}
+		cmd := sh.Cmd("flutter", cmdArgs...)
+		return runGoshCommandForDevice(cmd, d, false)
 	}
 
 	return fmt.Errorf("Could not find the target app to be installed. Try running 'madb install' from a Gradle or Flutter project directory.")

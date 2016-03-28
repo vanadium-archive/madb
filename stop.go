@@ -36,7 +36,7 @@ If the application ID is not specified, madb automatically determines which app 
 the build scripts found in the current working directory.
 
 1) If the working directory contains a Flutter project (i.e., has "flutter.yaml"), this command will
-run "flutter stop --android-device-id=<device serial>" for all the specified devices.
+run "flutter stop --device-id <device serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has "build.gradle"), run a
 small Gradle script to extract the application ID. In this case, the extracted ID is cached, so
@@ -72,9 +72,9 @@ func runMadbStopForDevice(env *cmdline.Env, args []string, d device, properties 
 	}
 
 	// In case of flutter, the application ID is not even needed.
-	// Simply run "flutter stop --android-device-id <device_serial>" on all devices.
+	// Simply run "flutter stop --device-id <device_serial>" on all devices.
 	if isFlutterProject(wd) {
-		cmdArgs := []string{"stop", "--android-device-id", d.Serial}
+		cmdArgs := []string{"stop", "--device-id", d.Serial}
 		cmd := sh.Cmd("flutter", cmdArgs...)
 		return runGoshCommandForDevice(cmd, d, false)
 	}

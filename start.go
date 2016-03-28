@@ -48,7 +48,7 @@ If no arguments are specified, madb automatically determines which app to launch
 scripts found in the current working directory.
 
 1) If the working directory contains a Flutter project (i.e., has "flutter.yaml"), this command will
-run "flutter start --android-device-id=<device serial>" for all the specified devices.
+run "flutter start --device-id <device serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has "build.gradle"), this
 command will run a small Gradle script to extract the application ID and the main activity name.
@@ -95,9 +95,9 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device, properties
 	}
 
 	// In case of flutter, the application ID is not even needed.
-	// Simply run "flutter start --android-device-id <device_serial>" on all devices.
+	// Simply run "flutter run --device-id <device_serial>" on all devices.
 	if isFlutterProject(wd) {
-		cmdArgs := []string{"start", "--android-device-id", d.Serial}
+		cmdArgs := []string{"run", "--device-id", d.Serial}
 		cmd := sh.Cmd("flutter", cmdArgs...)
 		return runGoshCommandForDevice(cmd, d, false)
 	}

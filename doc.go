@@ -334,8 +334,8 @@ If no arguments are specified, madb automatically determines which app to
 launch, based on the build scripts found in the current working directory.
 
 1) If the working directory contains a Flutter project (i.e., has
-"flutter.yaml"), this command will run "flutter start
---android-device-id=<device serial>" for all the specified devices.
+"flutter.yaml"), this command will run "flutter start --device-id <device
+serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has
 "build.gradle"), this command will run a small Gradle script to extract the
@@ -389,7 +389,7 @@ If the application ID is not specified, madb automatically determines which app
 to stop, based on the build scripts found in the current working directory.
 
 1) If the working directory contains a Flutter project (i.e., has
-"flutter.yaml"), this command will run "flutter stop --android-device-id=<device
+"flutter.yaml"), this command will run "flutter stop --device-id <device
 serial>" for all the specified devices.
 
 2) If the working directory contains a Gradle Android project (i.e., has
