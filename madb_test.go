@@ -269,7 +269,7 @@ func TestIsGradleProject(t *testing.T) {
 	}
 }
 
-func TestExtractIdsFromGradle(t *testing.T) {
+func TestExtractPropertiesFromGradle(t *testing.T) {
 	tests := []struct {
 		key  variantKey
 		want variantProperties

@@ -6,6 +6,8 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"v.io/x/lib/cmdline"
@@ -54,13 +56,18 @@ func runMadbInstallForDevice(env *cmdline.Env, args []string, d device, properti
 	sh.ContinueOnError = true
 	if isGradleProject(wd) {
 		// Get the necessary device properties.
-		// TODO(youngseokyoon): get the device density.
 		deviceAbis, err := getSupportedAbisForDevice(d)
 		if err != nil {
 			return err
 		}
 
-		bestOutput := computeBestOutput(properties.VariantOutputs, properties.AbiFilters, 0, deviceAbis)
+		deviceDensity, err := getScreenDensityForDevice(d)
+		if err != nil {
+			return err
+		}
+
+		// Compute the best output based on the device properties and the .apk filters.
+		bestOutput := computeBestOutput(properties.VariantOutputs, properties.AbiFilters, deviceDensity, deviceAbis)
 		if bestOutput == nil {
 			return fmt.Errorf("Could not find the matching .apk for device %q", d.displayName())
 		}
@@ -104,7 +111,8 @@ func getSupportedAbisForDevice(d device) ([]string, error) {
 	return parseSupportedAbis(output)
 }
 
-// parseSupportedAbis takes the output of "adb shell am get-config" command, and extracts the supported abis.
+// parseSupportedAbis takes the output of "adb shell am get-config" command, and extracts the
+// supported abis.
 func parseSupportedAbis(output string) ([]string, error) {
 	prefix := "abi: "
 	lines := strings.Split(output, "\n")
@@ -118,10 +126,71 @@ func parseSupportedAbis(output string) ([]string, error) {
 	return nil, fmt.Errorf("Could not extract the abi list from the device configuration output.")
 }
 
-// computeBestOutput returns the pointer of the best matching output among the multiple variant outputs,
-// given the device density and the abis supported by the device.
-// The logic of this function is similar to that of SplitOutputMatcher.java in the Android platform tools.
+// getScreenDensityForDevice returns the numeric screen dpi value of the given device.
+func getScreenDensityForDevice(d device) (int, error) {
+	sh := gosh.NewShell(nil)
+	defer sh.Cleanup()
+
+	sh.ContinueOnError = true
+
+	cmd := sh.Cmd("adb", "-s", d.Serial, "shell", "getprop")
+	output := cmd.Stdout()
+
+	if sh.Err != nil {
+		return 0, sh.Err
+	}
+
+	return parseScreenDensity(output)
+}
+
+// parseScreenDensity takes the output of "adb shell getprop" command, and extracts the screen
+// density value.
+func parseScreenDensity(output string) (int, error) {
+	// Each line in the output has the following format: "[<property_key>]: [<property_value>]"
+	// The property key for the screen density is "ro.sf.lcd_density".
+	// Look for the pattern "[ro.sf.lcd_density]: [(<value>)]" with regexp, with the value part
+	// as a subexpression.
+	key := "ro.sf.lcd_density"
+	pattern := fmt.Sprintf(`\[%v\]: \[(.*)\]`, key)
+	exp := regexp.MustCompile(pattern)
+
+	matches := exp.FindStringSubmatch(output)
+	// matches[1] is the first subexpression, which contains the density value we need.
+	if matches != nil && len(matches) == 2 {
+		return strconv.Atoi(matches[1])
+	}
+
+	return 0, fmt.Errorf("Could not extract the screen density from the device properties output.")
+}
+
+// getDensityResourceName converts the given numeric density value into a resource name such as
+// "ldpi", "mdpi", etc.
+func getDensityResourceName(density int) string {
+	// Predefined density names.
+	densityMap := map[int]string{
+		0:   "anydpi",
+		120: "ldpi",
+		160: "mdpi",
+		213: "tvdpi",
+		240: "hdpi",
+		320: "xhdpi",
+		480: "xxhdpi",
+		640: "xxxhdpi",
+	}
+
+	if name, ok := densityMap[density]; ok {
+		return name
+	}
+
+	// Otherwise, return density + "dpi". (e.g., 280 -> "280dpi")
+	return fmt.Sprintf("%vdpi", density)
+}
+
+// computeBestOutput returns the pointer of the best matching output among the multiple variant
+// outputs, given the device density and the abis supported by the device. The logic of this
+// function is similar to that of SplitOutputMatcher.java in the Android platform tools.
 func computeBestOutput(variantOutputs []variantOutput, variantAbiFilters []string, deviceDensity int, deviceAbis []string) *variantOutput {
+	densityName := getDensityResourceName(deviceDensity)
 	matches := map[*variantOutput]bool{}
 
 VariantOutputLoop:
@@ -130,7 +199,6 @@ VariantOutputLoop:
 	FilterLoop:
 		for _, filter := range vo.Filters {
 
-			// TODO(youngseokyoon): check the density filter too.
 			switch filter.FilterType {
 			case "ABI":
 				for _, supportedAbi := range deviceAbis {
@@ -144,6 +212,11 @@ VariantOutputLoop:
 				// this variant output is not compatible with the device.
 				// Check the next variant output.
 				continue VariantOutputLoop
+
+			case "DENSITY":
+				if filter.Identifier != densityName {
+					continue VariantOutputLoop
+				}
 			}
 		}
 
