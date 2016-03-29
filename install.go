@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,42 +15,78 @@ import (
 	"v.io/x/lib/gosh"
 )
 
-var (
-	replaceFlag bool
-)
-
 func init() {
 	initializePropertyCacheFlags(&cmdMadbInstall.Flags)
-	cmdMadbInstall.Flags.BoolVar(&replaceFlag, "r", true, `Replace the existing application. Same effect as the '-r' flag of 'adb install' command.`)
+	initializeBuildFlags(&cmdMadbInstall.Flags)
 }
 
 var cmdMadbInstall = &cmdline.Command{
-	Runner: subCommandRunner{nil, runMadbInstallForDevice, true},
+	Runner: subCommandRunner{initMadbInstall, runMadbInstallForDevice, true},
 	Name:   "install",
 	Short:  "Install your app on all devices",
 	Long: `
 Installs your app on all devices.
 
+If the working directory contains a Gradle Android project (i.e., has "build.gradle"), this command
+will first run a small Gradle script to extract the variant properties, which will be used to find
+the best matching .apk for each device. These extracted properties are cached, and "madb install"
+can be repeated without running this Gradle script again. The properties can be re-extracted by
+clearing the cache by providing "-clear-cache" flag.
+
+Once the variant properties are extracted, the best matching .apk for each device will be installed
+in parallel.
+
+This command is similar to running "gradlew :<moduleName>:<variantName>Install", but "madb install"
+is more flexible: 1) you can install the app to a subset of the devices, and 2) the app is installed
+concurrently, which saves a lot of time.
+
+
+If the working directory contains a Flutter project (i.e., has "flutter.yaml"), this command will
+run "flutter install --device-id <device serial>" for all devices.
+
+
 To install your app for a specific user on a particular device, use 'madb user set' command to set
 the default user ID for that device. (See 'madb help user' for more details.)
-
-If the working directory contains a Gradle Android project (i.e., has "build.gradle"), this command
-will run a small Gradle script to extract the variant properties, which will be used to find the
-best matching .apk for each device.
-
-In this case, the extracted properties are cached, so that "madb install" can be repeated without
-even running the Gradle script again. The IDs can be re-extracted by clearing the cache by providing
-"-clear-cache" flag.
-
-This command is similar to running "gradlew :<moduleName>:<variantName>Install", but the gradle
-command is limited in that 1) it always installs the app to all connected devices, and 2) it
-installs the app on one device at a time sequentially.
 
 To install a specific .apk file to all devices, use "madb exec install <path_to_apk>" instead.
 `,
 }
 
+func initMadbInstall(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	// If the "-build" flag is set, first run the relevant gradle tasks to build the .apk files
+	// before installing the app to the devices.
+	if isGradleProject(wd) && buildFlag {
+		sh := gosh.NewShell(nil)
+		defer sh.Cleanup()
+
+		// Show the output from Gradle, so that users can see what's going on.
+		sh.PropagateChildOutput = true
+		sh.ContinueOnError = true
+
+		wrapper, err := findGradleWrapper(wd)
+		if err != nil {
+			return nil, err
+		}
+
+		// Build the project by running ":<module>:assemble<Variant>" task.
+		cmdArgs := []string{"--daemon", properties.AssembleTask}
+		cmd := sh.Cmd(wrapper, cmdArgs...)
+		cmd.Run()
+
+		if err = sh.Err; err != nil {
+			return nil, fmt.Errorf("Failed to build the app: %v", err)
+		}
+	}
+
+	return args, nil
+}
+
 func runMadbInstallForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
+	// The user is executing "madb install" explicitly, and the installation should not be skipped.
+	return installVariantToDevice(d, properties, true)
+}
+
+func installVariantToDevice(d device, properties variantProperties, forceInstall bool) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
@@ -72,17 +109,25 @@ func runMadbInstallForDevice(env *cmdline.Env, args []string, d device, properti
 			return fmt.Errorf("Could not find the matching .apk for device %q", d.displayName())
 		}
 
-		// Run the install command.
-		cmdArgs := []string{"-s", d.Serial, "install"}
-		if replaceFlag {
-			cmdArgs = append(cmdArgs, "-r")
+		// Determine whether the app should be installed on the given device.
+		shouldInstall, err := shouldInstallVariant(d, properties, bestOutput, forceInstall)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Could not determine whether the app should be installed on device %q. Attempting to install...", d.displayName())
+			shouldInstall = true
 		}
-		if d.UserID != "" {
-			cmdArgs = append(cmdArgs, "--user", d.UserID)
+
+		// Run the "adb install" command to perform the installation.
+		if shouldInstall {
+			cmdArgs := []string{"-s", d.Serial, "install", "-r"}
+			if d.UserID != "" {
+				cmdArgs = append(cmdArgs, "--user", d.UserID)
+			}
+			cmdArgs = append(cmdArgs, bestOutput.OutputFilePath)
+			cmd := sh.Cmd("adb", cmdArgs...)
+			return runGoshCommandForDevice(cmd, d, true)
 		}
-		cmdArgs = append(cmdArgs, bestOutput.OutputFilePath)
-		cmd := sh.Cmd("adb", cmdArgs...)
-		return runGoshCommandForDevice(cmd, d, true)
+
+		fmt.Printf("Device %q has the most recent version of the app already. Skipping the installation.\n", d.displayName())
 	}
 
 	if isFlutterProject(wd) {
@@ -92,6 +137,54 @@ func runMadbInstallForDevice(env *cmdline.Env, args []string, d device, properti
 	}
 
 	return fmt.Errorf("Could not find the target app to be installed. Try running 'madb install' from a Gradle or Flutter project directory.")
+}
+
+// shouldInstallVariant determines whether the app should be installed on the given device or not.
+func shouldInstallVariant(d device, properties variantProperties, bestOutput *variantOutput, forceInstall bool) (bool, error) {
+	if forceInstall {
+		return true, nil
+	}
+
+	// Check if the app is installed on this device.
+	installed, err := isInstalled(d, properties)
+	if err != nil {
+		return false, err
+	}
+	if !installed {
+		return true, nil
+	}
+
+	// TODO(youngseokyoon): check the "lastUpdateTime" property of the installed app.
+	// For now, assume the app is outdated, and just return true to install.
+	return true, nil
+}
+
+// isInstalled determines whether the app variant is already installed on the given device.
+func isInstalled(d device, properties variantProperties) (bool, error) {
+	sh := gosh.NewShell(nil)
+	defer sh.Cleanup()
+
+	sh.ContinueOnError = true
+
+	// Run "adb shell pm list packages --user <user_id> <app_id>".
+	cmdArgs := []string{"-s", d.Serial, "shell", "pm", "list", "packages"}
+	if d.UserID != "" {
+		cmdArgs = append(cmdArgs, "--user", d.UserID)
+	}
+	cmdArgs = append(cmdArgs, properties.AppID)
+	cmd := sh.Cmd("adb", cmdArgs...)
+	output := cmd.Stdout()
+
+	if sh.Err != nil {
+		return false, sh.Err
+	}
+
+	// If the app is installed, the output should be in the form "package:<app_id>".
+	if strings.TrimSpace(output) == fmt.Sprintf("package:%v", properties.AppID) {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // getSupportedAbisForDevice returns all the abis supported by the given device.

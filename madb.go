@@ -34,6 +34,8 @@ var (
 	moduleFlag     string
 	variantFlag    string
 
+	buildFlag bool
+
 	wd string // working directory
 )
 
@@ -55,6 +57,11 @@ func initializePropertyCacheFlags(flags *flag.FlagSet) {
 	flags.BoolVar(&clearCacheFlag, "clear-cache", false, `Clear the cache and re-extract the variant properties such as the application ID and the main activity name. Only takes effect when no arguments are provided.`)
 	flags.StringVar(&moduleFlag, "module", "", `Specify which application module to use, when the current directory is the top level Gradle project containing multiple sub-modules. When not specified, the first available application module is used. Only takes effect when no arguments are provided.`)
 	flags.StringVar(&variantFlag, "variant", "", `Specify which build variant to use. When not specified, the first available build variant is used. Only takes effect when no arguments are provided.`)
+}
+
+// initializeBuildFlags sets up the flags related to running Gradle build tasks.
+func initializeBuildFlags(flags *flag.FlagSet) {
+	flags.BoolVar(&buildFlag, "build", true, `Build the target app variant before installing or running the app.`)
 }
 
 var cmdMadb = &cmdline.Command{
@@ -465,6 +472,10 @@ func getProjectPropertiesUsingDefaultCache() (variantProperties, error) {
 }
 
 type variantProperties struct {
+	ProjectPath    string
+	VariantName    string
+	CleanTask      string
+	AssembleTask   string
 	AppID          string
 	Activity       string
 	AbiFilters     []string

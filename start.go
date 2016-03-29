@@ -13,12 +13,15 @@ import (
 )
 
 var (
-	forceStopFlag bool
+	forceStopFlag    bool
+	forceInstallFlag bool
 )
 
 func init() {
 	initializePropertyCacheFlags(&cmdMadbStart.Flags)
+	initializeBuildFlags(&cmdMadbStart.Flags)
 	cmdMadbStart.Flags.BoolVar(&forceStopFlag, "force-stop", true, `Force stop the target app before starting the activity.`)
+	cmdMadbStart.Flags.BoolVar(&forceInstallFlag, "force-install", false, `Force install the target app before starting the activity.`)
 }
 
 var cmdMadbStart = &cmdline.Command{
@@ -27,6 +30,18 @@ var cmdMadbStart = &cmdline.Command{
 	Short:  "Launch your app on all devices",
 	Long: `
 Launches your app on all devices.
+
+In most cases, running "madb start" from an Android Gradle project directory will do the right thing
+for you. "madb start" will build the project first. After the project build is completed, this
+command will install the best matching .apk for each device, only if one or more of the following
+conditions are met:
+ - the app is not found on the device
+ - the installed app is outdated (determined by comparing the last update time of the
+   installed app and the last modification time of the local .apk file)
+ - "-force-install" flag is set
+
+If you would like to run the same version of the app repeatedly (e.g., for QA testing), you can
+explicitly turn off the build flag by providing "-build=false" to skip the build step.
 
 To run your app as a specific user on a particular device, use 'madb user set' command to set the
 default user ID for that device. (See 'madb help user' for more details.)
@@ -59,10 +74,25 @@ running the Gradle script again. The IDs can be re-extracted by clearing the cac
 }
 
 func initMadbStart(env *cmdline.Env, args []string, properties variantProperties) ([]string, error) {
+	// If the "-build" flag is set, call the init function of the install command, which would run
+	// the relevant Gradle build tasks to build the project.
+	if buildFlag {
+		newArgs, err := initMadbInstall(env, args, properties)
+		if err != nil {
+			return nil, err
+		}
+		args = newArgs
+	}
+
 	return initMadbCommand(env, args, properties, true, true)
 }
 
 func runMadbStartForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
+	// If the "-build" flag is set, install the app first.
+	if err := installVariantToDevice(d, properties, forceInstallFlag); err != nil {
+		return err
+	}
+
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
@@ -71,14 +101,16 @@ func runMadbStartForDevice(env *cmdline.Env, args []string, d device, properties
 	if len(args) == 2 {
 		appID, activity := args[0], args[1]
 
-		// In case the activity name is a simple name (i.e. without the package name), add a dot in the front.
-		// This is a shorthand syntax to prepend the activity name with the package name provided in the manifest.
+		// In case the activity name is a simple name (i.e. without the package name), add a dot in
+		// the front. This is a shorthand syntax to prepend the activity name with the package name
+		// provided in the manifest.
 		// http://developer.android.com/guide/topics/manifest/activity-element.html#nm
 		if !strings.ContainsAny(activity, ".") {
 			activity = "." + activity
 		}
 
-		// More details on the "adb shell am" command can be found at: http://developer.android.com/tools/help/shell.html#am
+		// More details on the "adb shell am" command can be found at:
+		// http://developer.android.com/tools/help/shell.html#am
 		cmdArgs := []string{"-s", d.Serial, "shell", "am", "start"}
 		if forceStopFlag {
 			cmdArgs = append(cmdArgs, "-S")

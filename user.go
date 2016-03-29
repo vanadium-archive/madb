@@ -35,6 +35,7 @@ that device as a result.
 Below is the list of madb commands which are affected by the default user ID settings:
 
     madb clear-data
+    madb install
     madb start
     madb stop
     madb uninstall

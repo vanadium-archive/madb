@@ -126,23 +126,28 @@ Madb install - Install your app on all devices
 
 Installs your app on all devices.
 
+If the working directory contains a Gradle Android project (i.e., has
+"build.gradle"), this command will first run a small Gradle script to extract
+the variant properties, which will be used to find the best matching .apk for
+each device. These extracted properties are cached, and "madb install" can be
+repeated without running this Gradle script again. The properties can be
+re-extracted by clearing the cache by providing "-clear-cache" flag.
+
+Once the variant properties are extracted, the best matching .apk for each
+device will be installed in parallel.
+
+This command is similar to running "gradlew :<moduleName>:<variantName>Install",
+but "madb install" is more flexible: 1) you can install the app to a subset of
+the devices, and 2) the app is installed concurrently, which saves a lot of
+time.
+
+If the working directory contains a Flutter project (i.e., has "flutter.yaml"),
+this command will run "flutter install --device-id <device serial>" for all
+devices.
+
 To install your app for a specific user on a particular device, use 'madb user
 set' command to set the default user ID for that device. (See 'madb help user'
 for more details.)
-
-If the working directory contains a Gradle Android project (i.e., has
-"build.gradle"), this command will run a small Gradle script to extract the
-variant properties, which will be used to find the best matching .apk for each
-device.
-
-In this case, the extracted properties are cached, so that "madb install" can be
-repeated without even running the Gradle script again. The IDs can be
-re-extracted by clearing the cache by providing "-clear-cache" flag.
-
-This command is similar to running "gradlew :<moduleName>:<variantName>Install",
-but the gradle command is limited in that 1) it always installs the app to all
-connected devices, and 2) it installs the app on one device at a time
-sequentially.
 
 To install a specific .apk file to all devices, use "madb exec install
 <path_to_apk>" instead.
@@ -151,6 +156,8 @@ Usage:
    madb install [flags]
 
 The madb install flags are:
+ -build=true
+   Build the target app variant before installing or running the app.
  -clear-cache=false
    Clear the cache and re-extract the variant properties such as the application
    ID and the main activity name. Only takes effect when no arguments are
@@ -160,9 +167,6 @@ The madb install flags are:
    top level Gradle project containing multiple sub-modules. When not specified,
    the first available application module is used. Only takes effect when no
    arguments are provided.
- -r=true
-   Replace the existing application. Same effect as the '-r' flag of 'adb
-   install' command.
  -variant=
    Specify which build variant to use. When not specified, the first available
    build variant is used. Only takes effect when no arguments are provided.
@@ -311,6 +315,20 @@ Madb start - Launch your app on all devices
 
 Launches your app on all devices.
 
+In most cases, running "madb start" from an Android Gradle project directory
+will do the right thing for you. "madb start" will build the project first.
+After the project build is completed, this command will install the best
+matching .apk for each device, only if one or more of the following conditions
+are met:
+ - the app is not found on the device
+ - the installed app is outdated (determined by comparing the last update time of the
+   installed app and the last modification time of the local .apk file)
+ - "-force-install" flag is set
+
+If you would like to run the same version of the app repeatedly (e.g., for QA
+testing), you can explicitly turn off the build flag by providing "-build=false"
+to skip the build step.
+
 To run your app as a specific user on a particular device, use 'madb user set'
 command to set the default user ID for that device. (See 'madb help user' for
 more details.)
@@ -345,10 +363,14 @@ script again. The IDs can be re-extracted by clearing the cache by providing
 "-clear-cache" flag.
 
 The madb start flags are:
+ -build=true
+   Build the target app variant before installing or running the app.
  -clear-cache=false
    Clear the cache and re-extract the variant properties such as the application
    ID and the main activity name. Only takes effect when no arguments are
    provided.
+ -force-install=false
+   Force install the target app before starting the activity.
  -force-stop=true
    Force stop the target app before starting the activity.
  -module=
@@ -494,6 +516,7 @@ Below is the list of madb commands which are affected by the default user ID
 settings:
 
     madb clear-data
+    madb install
     madb start
     madb stop
     madb uninstall

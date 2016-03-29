@@ -24,12 +24,16 @@ void extract(project) {
     def targetVariant = getTargetVariant(project)
 
     // Collect the variant properties in a map, so that it can be printed out as a JSON.
-    def result = [:]
-    result['VariantName'] = targetVariant.name
-    result['AppID'] = getApplicationId(targetVariant)
-    result['Activity'] = getMainActivity(project)
-    result['AbiFilters'] = getAbiFilters(targetVariant)
-    result['VariantOutputs'] = getVariantOutputs(targetVariant)
+    def result = [
+        ProjectPath:    project.path,
+        VariantName:    targetVariant.name,
+        CleanTask:      project.path + ":clean",
+        AssembleTask:   targetVariant.assemble.path,
+        AppID:          getApplicationId(targetVariant),
+        Activity:       getMainActivity(project),
+        AbiFilters:     getAbiFilters(targetVariant),
+        VariantOutputs: getVariantOutputs(targetVariant)
+    ]
 
     // Format the resulting map into JSON and print it.
     def resultJson = JsonOutput.prettyPrint(JsonOutput.toJson(result))
