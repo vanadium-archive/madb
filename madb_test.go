@@ -372,3 +372,22 @@ func TestGetProjectProperties(t *testing.T) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }
+
+// TestEmbeddedGradleScript tests whether the gradle script defined in embedded_gradle.go matches
+// the madb_init.gradle file.
+func TestEmbeddedGradleScript(t *testing.T) {
+	f, err := os.Open("madb_init.gradle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	bytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(bytes) != gradleInitScript {
+		t.Fatalf(`The embedded Gradle script is out of date. Please run "jiri go generate" to regenerate the embedded script.`)
+	}
+}

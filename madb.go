@@ -4,6 +4,7 @@
 
 // The following enables go generate to generate the doc.go file.
 //go:generate go run $JIRI_ROOT/release/go/src/v.io/x/lib/cmdline/testdata/gendoc.go .
+//go:generate go run testdata/embed_gradle_script.go madb_init.gradle embedded_gradle.go gradleInitScript
 
 package main
 
@@ -572,21 +573,6 @@ func findGradleWrapper(dir string) (string, error) {
 	return "", fmt.Errorf("Could not find the Gradle wrapper in dir %q or its parent directories.", dir)
 }
 
-// TODO(youngseokyoon): find a better way to distribute the gradle script.
-func findGradleInitScript() (string, error) {
-	jiriRoot := os.Getenv("JIRI_ROOT")
-	if jiriRoot == "" {
-		return "", fmt.Errorf("JIRI_ROOT environment variable is not set")
-	}
-
-	initScript := filepath.Join(jiriRoot, "release", "go", "src", "v.io", "x", "devtools", "madb", "madb_init.gradle")
-	if _, err := os.Stat(initScript); err != nil {
-		return "", err
-	}
-
-	return initScript, nil
-}
-
 func extractPropertiesFromGradle(key variantKey) (variantProperties, error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
@@ -602,16 +588,16 @@ func extractPropertiesFromGradle(key variantKey) (variantProperties, error) {
 		return variantProperties{}, err
 	}
 
-	initScript, err := findGradleInitScript()
-	if err != nil {
-		return variantProperties{}, fmt.Errorf("Could not find the madb_init.gradle script: %v", err)
-	}
+	// Write the init script in a temp file.
+	initScript := sh.MakeTempFile()
+	initScript.WriteString(gradleInitScript)
+	initScript.Close()
 
 	// Create a temporary file in which Gradle can write the results.
 	outputFile := sh.MakeTempFile()
 
 	// Run the gradle wrapper to extract the application ID and the main activity name from the build scripts.
-	cmdArgs := []string{"--daemon", "-q", "-I", initScript, "-PmadbOutputFile=" + outputFile.Name()}
+	cmdArgs := []string{"--daemon", "-q", "-I", initScript.Name(), "-PmadbOutputFile=" + outputFile.Name()}
 
 	// Specify the project directory. If the module name is explicitly set, combine it with the base directory.
 	cmdArgs = append(cmdArgs, "-p", filepath.Join(key.Dir, key.Module))
