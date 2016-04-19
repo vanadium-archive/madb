@@ -24,6 +24,7 @@ The madb commands are:
    stop        Stop your app on all devices
    uninstall   Uninstall your app from all devices
    user        Manage default user settings for each device
+   version     Print the madb version number
    help        Display help for commands or topics
 
 The madb flags are:
@@ -665,6 +666,29 @@ Usage:
    madb user clear-all [flags]
 
 The madb user clear-all flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1. Command will be run only on specified devices.
+
+Madb version - Print the madb version number
+
+Prints the madb version number to the console.
+
+If this version of madb binary is an official release, this command will show
+the version number. Otherwise, the version will be in the form of
+"<version>-develop", where the version indicates the most recent stable release
+version prior to this version of madb binary.
+
+Usage:
+   madb version [flags]
+
+The madb version flags are:
  -d=false
    Restrict the command to only run on real devices.
  -e=false

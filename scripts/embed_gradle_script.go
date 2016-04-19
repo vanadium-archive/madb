@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build ignore
+
 // A script that takes a source Gradle script, and writes a .go file that contains a constant string
 // variable that holds the contents of the source script. By doing this, the Gradle script can be
 // embedded in the madb binary. This script is located under testdata, to avoid being installed in

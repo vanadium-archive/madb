@@ -4,7 +4,12 @@
 
 // The following enables go generate to generate the doc.go file.
 //go:generate go run $JIRI_ROOT/release/go/src/v.io/x/lib/cmdline/testdata/gendoc.go .
-//go:generate go run testdata/embed_gradle_script.go madb_init.gradle embedded_gradle.go gradleInitScript
+
+// The following generates the embedded_gradle.go file from the madb_init.gradle file.
+//go:generate go run scripts/embed_gradle_script.go madb_init.gradle embedded_gradle.go gradleInitScript
+
+// The following generates the version.go file with the version string defined in the MADB_VERSION file.
+//go:generate go run scripts/update_version.go
 
 package main
 
@@ -76,6 +81,7 @@ var cmdMadb = &cmdline.Command{
 		cmdMadbStop,
 		cmdMadbUninstall,
 		cmdMadbUser,
+		cmdMadbVersion,
 	},
 	Name:  "madb",
 	Short: "Multi-device Android Debug Bridge",
