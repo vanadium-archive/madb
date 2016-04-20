@@ -1,6 +1,9 @@
 # Madb: Multi-device Android Debug Bridge
 
-[![GoDoc](https://godoc.org/github.com/vanadium/madb?status.svg)](https://godoc.org/github.com/vanadium/madb)
+[![Latest Release][release-image]][release-link]
+[![Build Status][travis-image]][travis-link]
+[![Coverage Status][coveralls-image]][coveralls-link]
+[![API Documentation][godoc-image]][godoc-link]
 
 Madb is a command line tool that wraps Android Debug Bridge (adb) and provides
 various features for controlling multiple Android devices concurrently.
@@ -211,3 +214,12 @@ For example, to launch your app only on emulators:
 To see the logcat messages from `Alice` and `Bob` devices and not from others:
 
     $ madb -n=Alice,Bob exec logcat
+
+[coveralls-image]: https://img.shields.io/coveralls/vanadium/madb/master.svg?maxAge=2592000?style=flat-square
+[coveralls-link]: https://coveralls.io/github/vanadium/madb?branch=master
+[godoc-image]: https://godoc.org/github.com/vanadium/madb?status.svg
+[godoc-link]: https://godoc.org/github.com/vanadium/madb
+[release-image]: https://img.shields.io/github/release/vanadium/madb.svg?maxAge=2592000?style=flat-square
+[release-link]: https://github.com/vanadium/madb/releases/latest
+[travis-image]: https://img.shields.io/travis/vanadium/madb/master.svg?style=flat-square)
+[travis-link]: https://travis-ci.org/vanadium/madb.svg?branch=master

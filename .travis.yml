@@ -1,0 +1,18 @@
+language: go
+go:
+- tip
+sudo: required
+dist: trusty
+before_install:
+- sudo add-apt-repository universe
+- sudo apt-get -qq update
+- sudo apt-get install android-tools-adb
+- go get github.com/mattn/goveralls
+- go get golang.org/x/tools/cmd/cover
+script:
+- go test -v -coverprofile=profile.cov
+after_script:
+- $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
+env:
+  global:
+  - secure: KMlxnkRgmmcwgdEVxLAuFVcIIH1prthlRITAmMMiT7EaP7U9zG8TPaSgKtS+cq1JV4/Z1mRxQC9590FbJwboSBsjHRYCwUAJqpTEJy3Ltw6oaG9iR1VlWUUVoUO/gyC0dleXPUg5m4SF2Hf+HP+M0CufXQQr+slP8qsHwFjll7gaXdJ0f5Sc1B+0ITSj8AUFs1dO1NZ0R9te8cs+VQuWTmXM0sNbyZ1mqzm2ycIdFUL4a+iCBjmMuARBF64OECHmowU8NZJeQRRCiusJzO86xoTKjTM/9w+6hkh5DJeOO77cSGEGQBWPbIzgK2yuPRxsyvj3lJ/iWt22zb67qcJumVHxztNUhBRnWppIVv8R72qhjSyhCz7zLxCzf6SJmUSJwK7eYXJTKoYUMCbBGUyXKIMIE/3nczGhYAScQvULd14qo73NkofFMFhQx3XZ7KvhEQnrLdoS1L6u+UBTQEIbutHe3cN3AauhQZPnKpbosKXO6xrEyWuRKB9riYl6mY4tA4BaXBXTav8Ukbv3nwe/+cIOUCQ0f00Ojy9p72nk1eeAvS25TYutdsPjNAysheYIH/YyBN1hMsFpB9WTGQlPMNOwcUOKwIUlnRyQ/y3sPvNyq7Dnc/JETvSyguKv7qVNBp3K2hf7viSsM/58ZVrVriWcg1v3IRe/0r9SJK5uDUI=
