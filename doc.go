@@ -98,10 +98,25 @@ Runs the provided adb command on all devices and emulators concurrently.
 
 For example, the following line:
 
-    madb -a exec push ./foo.txt /sdcard/foo.txt
+    madb exec push ./foo.txt /sdcard/foo.txt
 
 copies the ./foo.txt file to /sdcard/foo.txt for all the currently connected
-Android devices.
+devices.
+
+There are a few pre-defined keywords that can be expanded within an argument.
+
+    "{{index}}"  : the index of the current device, starting from 1.
+    "{{name}}"   : the nickname of the current device, or the serial number if a nickname is not set.
+    "{{serial}}" : the serial number of the current device.
+
+For example, the following line:
+
+    madb exec -n=Alice,Bob push ./{{name}}.txt /sdcard/{{name}}.txt
+
+copies the ./Alice.txt file to the device named Alice, and ./Bob.txt to the
+device named Bob. Note that you should type in "{{name}}" as-is, with the
+opening/closing curly braces, similar to when you're using a template library
+such as mustache.
 
 To see the list of available adb commands, type 'adb help'.
 

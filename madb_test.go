@@ -391,3 +391,46 @@ func TestEmbeddedGradleScript(t *testing.T) {
 		t.Fatalf(`The embedded Gradle script is out of date. Please run "jiri go generate" to regenerate the embedded script.`)
 	}
 }
+
+// TestExpandKeywords tests the "expandKeywords" function, which is used for expanding pre-defined
+// keywords such as "{{serial}}" and "{{name}}".
+func TestExpandKeywords(t *testing.T) {
+	// Sample devices.
+	d1 := device{
+		Serial:     "0123456789",
+		Type:       realDevice,
+		Qualifiers: nil,
+		Nickname:   "Alice",
+		Index:      1,
+		UserID:     "10",
+	}
+
+	d2 := device{
+		Serial:     "emulator-1234",
+		Type:       emulator,
+		Qualifiers: nil,
+		Nickname:   "",
+		Index:      2,
+		UserID:     "",
+	}
+
+	tests := []struct {
+		arg  string
+		d    device
+		want string
+	}{
+		{"{{name}}.txt", d1, "Alice.txt"},
+		{"{{serial}}.txt", d1, "0123456789.txt"},
+		{"{{index}}.txt", d1, "1.txt"},
+		{"Hello, {{name}}!", d2, "Hello, emulator-1234!"},
+		{"Hello, {{serial}}!", d2, "Hello, emulator-1234!"},
+		{"{{index}}.txt", d2, "2.txt"},
+		{"{{name}}-{{serial}}.txt", d1, "Alice-0123456789.txt"},
+	}
+
+	for i, test := range tests {
+		if got := expandKeywords(test.arg, test.d); got != test.want {
+			t.Fatalf("unmatched results for tests[%v]: got %v, want %v", i, got, test.want)
+		}
+	}
+}

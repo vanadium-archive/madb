@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -670,6 +671,26 @@ func writeMapToFile(data map[string]string, filename string) error {
 
 	encoder := json.NewEncoder(f)
 	return encoder.Encode(data)
+}
+
+// expandKeywords takes a command line argument and a device configuration, and returns a new
+// argument where the predefined keywords ("{{index}}", "{{name}}", "{{serial}}") are expanded.
+func expandKeywords(arg string, d device) string {
+	exp := regexp.MustCompile(`{{(index|name|serial)}}`)
+	result := exp.ReplaceAllStringFunc(arg, func(keyword string) string {
+		switch keyword {
+		case "{{index}}":
+			return strconv.Itoa(d.Index)
+		case "{{name}}":
+			return d.displayName()
+		case "{{serial}}":
+			return d.Serial
+		default:
+			return keyword
+		}
+	})
+
+	return result
 }
 
 type pathProvider func() (string, error)

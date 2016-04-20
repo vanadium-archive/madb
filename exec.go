@@ -18,9 +18,23 @@ Runs the provided adb command on all devices and emulators concurrently.
 
 For example, the following line:
 
-    madb -a exec push ./foo.txt /sdcard/foo.txt
+    madb exec push ./foo.txt /sdcard/foo.txt
 
-copies the ./foo.txt file to /sdcard/foo.txt for all the currently connected Android devices.
+copies the ./foo.txt file to /sdcard/foo.txt for all the currently connected devices.
+
+There are a few pre-defined keywords that can be expanded within an argument.
+
+    "{{index}}"  : the index of the current device, starting from 1.
+    "{{name}}"   : the nickname of the current device, or the serial number if a nickname is not set.
+    "{{serial}}" : the serial number of the current device.
+
+For example, the following line:
+
+    madb exec -n=Alice,Bob push ./{{name}}.txt /sdcard/{{name}}.txt
+
+copies the ./Alice.txt file to the device named Alice, and ./Bob.txt to the device named Bob.
+Note that you should type in "{{name}}" as-is, with the opening/closing curly braces, similar to
+when you're using a template library such as mustache.
 
 To see the list of available adb commands, type 'adb help'.
 `,
@@ -36,7 +50,13 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, d device, properties 
 
 	sh.ContinueOnError = true
 
-	cmdArgs := append([]string{"-s", d.Serial}, args...)
+	// Expand the keywords before running the command.
+	expandedArgs := make([]string, len(args))
+	for i, arg := range args {
+		expandedArgs[i] = expandKeywords(arg, d)
+	}
+
+	cmdArgs := append([]string{"-s", d.Serial}, expandedArgs...)
 	cmd := sh.Cmd("adb", cmdArgs...)
 	return runGoshCommandForDevice(cmd, d, false)
 }
