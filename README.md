@@ -216,10 +216,10 @@ To see the logcat messages from `Alice` and `Bob` devices and not from others:
     $ madb -n=Alice,Bob exec logcat
 
 [coveralls-image]: https://img.shields.io/coveralls/vanadium/madb/master.svg?maxAge=2592000?style=flat-square
-[coveralls-link]: https://coveralls.io/github/vanadium/madb?branch=master
+[coveralls-link]: https://coveralls.io/github/vanadium/madb
 [godoc-image]: https://godoc.org/github.com/vanadium/madb?status.svg
 [godoc-link]: https://godoc.org/github.com/vanadium/madb
 [release-image]: https://img.shields.io/github/release/vanadium/madb.svg?maxAge=2592000?style=flat-square
 [release-link]: https://github.com/vanadium/madb/releases/latest
 [travis-image]: https://img.shields.io/travis/vanadium/madb/master.svg?style=flat-square)
-[travis-link]: https://travis-ci.org/vanadium/madb.svg?branch=master
+[travis-link]: https://travis-ci.org/vanadium/madb
