@@ -598,7 +598,7 @@ func extractPropertiesFromGradle(key variantKey) (variantProperties, error) {
 	// Write the init script in a temp file.
 	initScript := sh.MakeTempFile()
 	initScript.WriteString(gradleInitScript)
-	initScript.Close()
+	initScript.Sync()
 
 	// Create a temporary file in which Gradle can write the results.
 	outputFile := sh.MakeTempFile()
