@@ -20,6 +20,8 @@ The madb commands are:
                concurrently
    install     Install your app on all devices
    name        Manage device nicknames
+   shell       Run the provided adb shell command on all devices and emulators
+               concurrently
    start       Launch your app on all devices
    stop        Stop your app on all devices
    uninstall   Uninstall your app from all devices
@@ -317,6 +319,30 @@ Usage:
    madb name clear-all [flags]
 
 The madb name clear-all flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1. Command will be run only on specified devices.
+
+Madb shell - Run the provided adb shell command on all devices and emulators concurrently
+
+Runs the provided adb shell command on all devices and emulators concurrently.
+
+This command is a shorthand syntax for 'madb exec shell <command...>'. See 'madb
+help exec' for more details.
+
+Usage:
+   madb shell [flags] <command>
+
+<command> is a normal adb shell command, which will be executed on all devices
+and emulators.
+
+The madb shell flags are:
  -d=false
    Restrict the command to only run on real devices.
  -e=false

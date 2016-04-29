@@ -77,6 +77,7 @@ var cmdMadb = &cmdline.Command{
 		cmdMadbExec,
 		cmdMadbInstall,
 		cmdMadbName,
+		cmdMadbShell,
 		cmdMadbStart,
 		cmdMadbStop,
 		cmdMadbUninstall,

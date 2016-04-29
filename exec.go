@@ -44,7 +44,31 @@ To see the list of available adb commands, type 'adb help'.
 `,
 }
 
+var cmdMadbShell = &cmdline.Command{
+	Runner: subCommandRunner{subCmd: runMadbShellForDevice},
+	Name:   "shell",
+	Short:  "Run the provided adb shell command on all devices and emulators concurrently",
+	Long: `
+Runs the provided adb shell command on all devices and emulators concurrently.
+
+This command is a shorthand syntax for 'madb exec shell <command...>'.
+See 'madb help exec' for more details.
+`,
+	ArgsName: "<command>",
+	ArgsLong: `
+<command> is a normal adb shell command, which will be executed on all devices and emulators.
+`,
+}
+
 func runMadbExecForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
+	return runAdbCommandForDevice(env, args, d, properties, false)
+}
+
+func runMadbShellForDevice(env *cmdline.Env, args []string, d device, properties variantProperties) error {
+	return runAdbCommandForDevice(env, args, d, properties, true)
+}
+
+func runAdbCommandForDevice(env *cmdline.Env, args []string, d device, properties variantProperties, isShellCmd bool) error {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
@@ -56,7 +80,11 @@ func runMadbExecForDevice(env *cmdline.Env, args []string, d device, properties 
 		expandedArgs[i] = expandKeywords(arg, d)
 	}
 
-	cmdArgs := append([]string{"-s", d.Serial}, expandedArgs...)
+	cmdArgs := []string{"-s", d.Serial}
+	if isShellCmd {
+		cmdArgs = append(cmdArgs, "shell")
+	}
+	cmdArgs = append(cmdArgs, expandedArgs...)
 	cmd := sh.Cmd("adb", cmdArgs...)
 	return runGoshCommandForDevice(cmd, d, false)
 }
