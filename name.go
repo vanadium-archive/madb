@@ -14,14 +14,13 @@ import (
 )
 
 var cmdMadbName = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbNameSet, cmdMadbNameUnset, cmdMadbNameList, cmdMadbNameClearAll},
-	Name:     "name",
-	Short:    "Manage device nicknames",
+	Children:         []*cmdline.Command{cmdMadbNameSet, cmdMadbNameUnset, cmdMadbNameList, cmdMadbNameClearAll},
+	Name:             "name",
+	DontInheritFlags: true,
+	Short:            "Manage device nicknames",
 	Long: `
 Manages device nicknames, which are meant to be more human-friendly compared to
 the device serials provided by adb tool.
-
-NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name' commands.
 `,
 }
 

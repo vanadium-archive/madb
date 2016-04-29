@@ -204,9 +204,6 @@ Madb name - Manage device nicknames
 Manages device nicknames, which are meant to be more human-friendly compared to
 the device serials provided by adb tool.
 
-NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name'
-commands.
-
 Usage:
    madb name [flags] <command>
 
@@ -215,17 +212,6 @@ The madb name commands are:
    unset       Unset a nickname set by the 'madb name set' command.
    list        List all the existing nicknames.
    clear-all   Clear all the existing nicknames.
-
-The madb name flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb name set
 
@@ -260,17 +246,6 @@ Usage:
 device qualifier (e.g., 'usb:3-3.4.2') obtained from 'adb devices -l' command
 <nickname> is an alpha-numeric string with no special characters or spaces.
 
-The madb name set flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
-
 Madb name unset
 
 Unsets a nickname assigned by the 'madb name set' command. Either the device
@@ -282,17 +257,6 @@ Usage:
 There should be only one argument, which is either the device serial or the
 nickname.
 
-The madb name unset flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
-
 Madb name list
 
 Lists all the currently stored nicknames of device serials.
@@ -300,34 +264,12 @@ Lists all the currently stored nicknames of device serials.
 Usage:
    madb name list [flags]
 
-The madb name list flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
-
 Madb name clear-all
 
 Clears all the currently stored nicknames of device serials.
 
 Usage:
    madb name clear-all [flags]
-
-The madb name clear-all flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb shell - Run the provided adb shell command on all devices and emulators concurrently
 
@@ -566,9 +508,6 @@ settings:
 For more details on how to obtain the user ID from an Android device, see 'madb
 user help set'.
 
-NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name'
-commands.
-
 Usage:
    madb user [flags] <command>
 
@@ -577,17 +516,6 @@ The madb user commands are:
    unset       Unset the default user ID set by the 'madb user set' command.
    list        List all the existing default user IDs.
    clear-all   Clear all the existing default user settings.
-
-The madb user flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb user set
 
@@ -626,17 +554,6 @@ Usage:
 obtained from 'adb devices'. <user_id> is one of the user IDs obtained from 'adb
 shell pm list users' command.
 
-The madb user set flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
-
 Madb user unset
 
 Unsets the default user ID assigned by the 'madb user set' command for the
@@ -652,34 +569,12 @@ Usage:
 <device_serial> is the unique serial number for the device, which can be
 obtained from 'adb devices'.
 
-The madb user unset flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
-
 Madb user list
 
 Lists all the currently stored default user IDs for devices.
 
 Usage:
    madb user list [flags]
-
-The madb user list flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb user clear-all
 
@@ -690,17 +585,6 @@ currently connected or not.
 
 Usage:
    madb user clear-all [flags]
-
-The madb user clear-all flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb version - Print the madb version number
 
@@ -713,17 +597,6 @@ version prior to this version of madb binary.
 
 Usage:
    madb version [flags]
-
-The madb version flags are:
- -d=false
-   Restrict the command to only run on real devices.
- -e=false
-   Restrict the command to only run on emulators.
- -n=
-   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
 
 Madb help - Display help for commands or topics
 

@@ -15,9 +15,10 @@ import (
 
 // TODO(youngseokyoon): add a helper command that wraps "madb exec shell pm list users" to show all available users.
 var cmdMadbUser = &cmdline.Command{
-	Children: []*cmdline.Command{cmdMadbUserSet, cmdMadbUserUnset, cmdMadbUserList, cmdMadbUserClearAll},
-	Name:     "user",
-	Short:    "Manage default user settings for each device",
+	Children:         []*cmdline.Command{cmdMadbUserSet, cmdMadbUserUnset, cmdMadbUserList, cmdMadbUserClearAll},
+	Name:             "user",
+	DontInheritFlags: true,
+	Short:            "Manage default user settings for each device",
 	Long: `
 Manages default user settings for each device.
 
@@ -41,8 +42,6 @@ Below is the list of madb commands which are affected by the default user ID set
     madb uninstall
 
 For more details on how to obtain the user ID from an Android device, see 'madb user help set'.
-
-NOTE: Device specifier flags (-d, -e, -n) are ignored in all 'madb name' commands.
 `,
 }
 

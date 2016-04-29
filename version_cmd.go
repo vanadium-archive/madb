@@ -11,15 +11,17 @@ import (
 )
 
 var cmdMadbVersion = &cmdline.Command{
-	Runner: cmdline.RunnerFunc(runCmdMadbVersion),
-	Name:   "version",
-	Short:  "Print the madb version number",
+	Runner:           cmdline.RunnerFunc(runCmdMadbVersion),
+	Name:             "version",
+	DontInheritFlags: true,
+	Short:            "Print the madb version number",
 	Long: `
 Prints the madb version number to the console.
 
 If this version of madb binary is an official release, this command will show the version number.
 Otherwise, the version will be in the form of "<version>-develop", where the version indicates the
-most recent stable release version prior to this version of madb binary.`,
+most recent stable release version prior to this version of madb binary.
+`,
 }
 
 func runCmdMadbVersion(env *cmdline.Env, args []string) error {
