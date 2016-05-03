@@ -39,6 +39,8 @@ The madb flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 The global flags are:
  -metadata=<just specify -metadata to activate>
@@ -94,6 +96,8 @@ The madb clear-data flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb exec - Run the provided adb command on all devices and emulators concurrently
 
@@ -139,6 +143,8 @@ The madb exec flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb install - Install your app on all devices
 
@@ -198,6 +204,8 @@ The madb install flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb name - Manage device nicknames
 
@@ -294,6 +302,8 @@ The madb shell flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb start - Launch your app on all devices
 
@@ -375,6 +385,8 @@ The madb start flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb stop - Stop your app on all devices
 
@@ -427,6 +439,8 @@ The madb stop flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb uninstall - Uninstall your app from all devices
 
@@ -478,6 +492,8 @@ The madb uninstall flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
 
 Madb user - Manage default user settings for each device
 

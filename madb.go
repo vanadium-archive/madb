@@ -36,6 +36,7 @@ var (
 	allDevicesFlag   bool
 	allEmulatorsFlag bool
 	devicesFlag      string
+	sequentialFlag   bool
 
 	clearCacheFlag bool
 	moduleFlag     string
@@ -50,6 +51,7 @@ func init() {
 	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
 	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name'). A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1. Command will be run only on specified devices.`)
+	cmdMadb.Flags.BoolVar(&sequentialFlag, "seq", false, `Run the command sequentially, instead of running it in parallel.`)
 
 	// Store the current working directory.
 	var err error
@@ -388,26 +390,33 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 		args = newArgs
 	}
 
-	wg := sync.WaitGroup{}
-
 	var errs []error
 	var errDevices []device
 
-	for _, d := range devices {
-		// Capture the current value.
-		deviceCopy := d
-
-		wg.Add(1)
-		go func() {
-			if err := r.subCmd(env, args, deviceCopy, properties); err != nil {
+	if sequentialFlag {
+		for _, d := range devices {
+			if err := r.subCmd(env, args, d, properties); err != nil {
 				errs = append(errs, err)
-				errDevices = append(errDevices, deviceCopy)
+				errDevices = append(errDevices, d)
 			}
-			wg.Done()
-		}()
-	}
+		}
+	} else {
+		wg := sync.WaitGroup{}
+		for _, d := range devices {
+			// Capture the current device value, and run the command in a go-routine.
+			deviceCopy := d
 
-	wg.Wait()
+			wg.Add(1)
+			go func() {
+				if err := r.subCmd(env, args, deviceCopy, properties); err != nil {
+					errs = append(errs, err)
+					errDevices = append(errDevices, deviceCopy)
+				}
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+	}
 
 	// Report any errors returned from the go-routines.
 	if errs != nil {
