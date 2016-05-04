@@ -5,12 +5,21 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"v.io/x/lib/gosh"
 )
+
+func TestMain(m *testing.M) {
+	gosh.InitMain()
+	os.Exit(m.Run())
+}
 
 func tempFilename(t *testing.T) string {
 	f, err := ioutil.TempFile("", "madb_test")
@@ -431,6 +440,76 @@ func TestExpandKeywords(t *testing.T) {
 	for i, test := range tests {
 		if got := expandKeywords(test.arg, test.d); got != test.want {
 			t.Fatalf("unmatched results for tests[%v]: got %v, want %v", i, got, test.want)
+		}
+	}
+}
+
+var helloFunc = gosh.RegisterFunc("helloFunc", func() {
+	fmt.Println("Hello, World!")
+})
+
+func TestOutputPrefix(t *testing.T) {
+	// Sample device.
+	d1 := device{
+		Serial:     "deviceid01",
+		Type:       realDevice,
+		Qualifiers: nil,
+		Nickname:   "Alice",
+		Index:      1,
+		UserID:     "",
+	}
+
+	d2 := device{
+		Serial:     "deviceid02",
+		Type:       realDevice,
+		Qualifiers: nil,
+		Nickname:   "Bob",
+		Index:      2,
+		UserID:     "10",
+	}
+
+	d3 := device{
+		Serial:     "deviceid03",
+		Type:       realDevice,
+		Qualifiers: nil,
+		Nickname:   "",
+		Index:      3,
+		UserID:     "",
+	}
+
+	sh := gosh.NewShell(nil)
+	defer sh.Cleanup()
+
+	tests := []struct {
+		prefixType string
+		d          device
+		want       string
+	}{
+		{"name", d1, "[Alice]\tHello, World!\n"},
+		{"name", d2, "[Bob:10]\tHello, World!\n"},
+		{"name", d3, "[deviceid03]\tHello, World!\n"},
+		{"serial", d1, "[deviceid01]\tHello, World!\n"},
+		{"serial", d2, "[deviceid02:10]\tHello, World!\n"},
+		{"serial", d3, "[deviceid03]\tHello, World!\n"},
+		{"none", d1, "Hello, World!\n"},
+		{"none", d2, "Hello, World!\n"},
+		{"none", d3, "Hello, World!\n"},
+	}
+
+	for i, test := range tests {
+		var b1, b2 bytes.Buffer
+
+		helloCmd := sh.FuncCmd(helloFunc)
+		prefixFlag = test.prefixType
+		if err := runGoshCommandForDeviceWithWriters(helloCmd, test.d, true, &b1, &b2); err != nil {
+			t.Fatalf("error occurred while running gosh command: %v", err)
+		}
+
+		if got, want := b1.String(), test.want; got != want {
+			t.Fatalf("unmatched results for tests[%v]: got %v, want %v", i, got, want)
+		}
+		if b2.String() != "" {
+			t.Fatalf("unexpected output to stderr for tests[%v]: %v", i, b2.String())
 		}
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -37,6 +38,7 @@ var (
 	allEmulatorsFlag bool
 	devicesFlag      string
 	sequentialFlag   bool
+	prefixFlag       string
 
 	clearCacheFlag bool
 	moduleFlag     string
@@ -52,6 +54,11 @@ func init() {
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
 	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name'). A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1. Command will be run only on specified devices.`)
 	cmdMadb.Flags.BoolVar(&sequentialFlag, "seq", false, `Run the command sequentially, instead of running it in parallel.`)
+	cmdMadb.Flags.StringVar(&prefixFlag, "prefix", "name", `Specify which output prefix to use. You can choose from the following options:
+    name   - Display the nickname of the device. The serial number is used instead if the
+             nickname is not set for the given device.
+    serial - Display the serial number of the device.
+    none   - Do not display the output prefix.`)
 
 	// Store the current working directory.
 	var err error
@@ -362,6 +369,11 @@ var _ cmdline.Runner = (*subCommandRunner)(nil)
 
 // Invokes the sub command on all the devices in parallel.
 func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
+	prefixFlag = strings.ToLower(prefixFlag)
+	if prefixFlag != "auto" && prefixFlag != "serial" && prefixFlag != "none" {
+		return fmt.Errorf(`The -prefix flag value must be one of "auto", "serial", or "none".`)
+	}
+
 	if err := startAdbServer(); err != nil {
 		return err
 	}
@@ -432,20 +444,29 @@ func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 }
 
 func runGoshCommandForDevice(cmd *gosh.Cmd, d device, printUserID bool) error {
-	var prefix string
-	if printUserID && d.UserID != "" {
-		prefix = "[" + d.displayName() + ":" + d.UserID + "]\t"
-	} else {
-		prefix = "[" + d.displayName() + "]\t"
+	return runGoshCommandForDeviceWithWriters(cmd, d, printUserID, os.Stdout, os.Stderr)
+}
+
+func runGoshCommandForDeviceWithWriters(cmd *gosh.Cmd, d device, printUserID bool, stdout, stderr io.Writer) error {
+	prefix := ""
+	if prefixFlag != "none" {
+		name := d.Serial
+		if prefixFlag == "name" {
+			name = d.displayName()
+		}
+		if printUserID && d.UserID != "" {
+			name = name + ":" + d.UserID
+		}
+		prefix = "[" + name + "]\t"
 	}
 
-	stdout := textutil.PrefixLineWriter(os.Stdout, prefix)
-	stderr := textutil.PrefixLineWriter(os.Stderr, prefix)
-	cmd.AddStdoutWriter(stdout)
-	cmd.AddStderrWriter(stderr)
+	prefixedStdout := textutil.PrefixLineWriter(stdout, prefix)
+	prefixedStderr := textutil.PrefixLineWriter(stderr, prefix)
+	cmd.AddStdoutWriter(prefixedStdout)
+	cmd.AddStderrWriter(prefixedStderr)
 	cmd.Run()
-	stdout.Flush()
-	stderr.Flush()
+	prefixedStdout.Flush()
+	prefixedStderr.Flush()
 
 	return cmd.Shell().Err
 }

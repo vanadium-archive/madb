@@ -39,6 +39,13 @@ The madb flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -96,6 +103,13 @@ The madb clear-data flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -143,6 +157,13 @@ The madb exec flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -204,6 +225,13 @@ The madb install flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -302,6 +330,13 @@ The madb shell flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -385,6 +420,13 @@ The madb start flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -439,6 +481,13 @@ The madb stop flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
@@ -492,6 +541,13 @@ The madb uninstall flags are:
    '@2'), or nicknames (set by 'madb name'). A device index is specified by an
    '@' sign followed by the index of the device in the output of 'adb devices'
    command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
 
