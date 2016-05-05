@@ -14,7 +14,7 @@ func TestMadbUserSet(t *testing.T) {
 	filename := tempFilename(t)
 	defer os.Remove(filename)
 
-	var got, want map[string]string
+	var cfg *config
 	var err error
 
 	// Set a new nickname
@@ -22,11 +22,10 @@ func TestMadbUserSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"SERIAL1": "0"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.UserIDs, map[string]string{"SERIAL1": "0"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -35,11 +34,10 @@ func TestMadbUserSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"SERIAL1": "0", "SERIAL2": "10"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.UserIDs, map[string]string{"SERIAL1": "0", "SERIAL2": "10"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -48,11 +46,10 @@ func TestMadbUserSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"SERIAL1": "20", "SERIAL2": "10"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.UserIDs, map[string]string{"SERIAL1": "20", "SERIAL2": "10"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -74,18 +71,17 @@ func TestMadbUserUnset(t *testing.T) {
 	runMadbUserSet(nil, []string{"SERIAL2", "0"}, filename)
 	runMadbUserSet(nil, []string{"SERIAL3", "10"}, filename)
 
-	var got, want map[string]string
+	var cfg *config
 	var err error
 
 	// Unset by serial number.
 	if err = runMadbUserUnset(nil, []string{"SERIAL1"}, filename); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"SERIAL2": "0", "SERIAL3": "10"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.UserIDs, map[string]string{"SERIAL2": "0", "SERIAL3": "10"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }
@@ -99,11 +95,26 @@ func TestMadbUserClearAll(t *testing.T) {
 	runMadbUserSet(nil, []string{"SERIAL2", "0"}, filename)
 	runMadbUserSet(nil, []string{"SERIAL3", "10"}, filename)
 
-	// Run the clear-all command. The file should be empty after running the command.
+	// Set up some default nicknames. These nicknames should be preserved after
+	// running the "user clear-all" command.
+	runMadbNameSet(nil, []string{"SERIAL1", "NICKNAME1"}, filename)
+	runMadbNameSet(nil, []string{"SERIAL2", "NICKNAME2"}, filename)
+
+	// Run the clear-all command.
 	runMadbUserClearAll(nil, []string{}, filename)
 
-	// Check if the file is successfully deleted.
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		t.Fatalf("failed to delete file %q", filename)
+	cfg, err := readConfig(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure that the user IDs are all deleted.
+	if got, want := cfg.UserIDs, map[string]string{}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
+	}
+
+	// Make sure that the nicknames are preserved.
+	if got, want := cfg.Names, map[string]string{"NICKNAME1": "SERIAL1", "NICKNAME2": "SERIAL2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }

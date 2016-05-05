@@ -14,7 +14,7 @@ func TestMadbNameSet(t *testing.T) {
 	filename := tempFilename(t)
 	defer os.Remove(filename)
 
-	var got, want map[string]string
+	var cfg *config
 	var err error
 
 	// Set a new nickname
@@ -22,11 +22,10 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"NICKNAME1": "SERIAL1"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.Names, map[string]string{"NICKNAME1": "SERIAL1"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -35,11 +34,10 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"NICKNAME1": "SERIAL1", "NICKNAME2": "SERIAL2"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.Names, map[string]string{"NICKNAME1": "SERIAL1", "NICKNAME2": "SERIAL2"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -48,11 +46,10 @@ func TestMadbNameSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"NN1": "SERIAL1", "NICKNAME2": "SERIAL2"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.Names, map[string]string{"NN1": "SERIAL1", "NICKNAME2": "SERIAL2"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -71,18 +68,17 @@ func TestMadbNameUnset(t *testing.T) {
 	runMadbNameSet(nil, []string{"SERIAL2", "NICKNAME2"}, filename)
 	runMadbNameSet(nil, []string{"SERIAL3", "NICKNAME3"}, filename)
 
-	var got, want map[string]string
+	var cfg *config
 	var err error
 
 	// Unset by serial number.
 	if err = runMadbNameUnset(nil, []string{"SERIAL1"}, filename); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"NICKNAME2": "SERIAL2", "NICKNAME3": "SERIAL3"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.Names, map[string]string{"NICKNAME2": "SERIAL2", "NICKNAME3": "SERIAL3"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -90,11 +86,10 @@ func TestMadbNameUnset(t *testing.T) {
 	if err = runMadbNameUnset(nil, []string{"NICKNAME2"}, filename); err != nil {
 		t.Fatal(err)
 	}
-	if got, err = readMapFromFile(filename); err != nil {
+	if cfg, err = readConfig(filename); err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"NICKNAME3": "SERIAL3"}
-	if !reflect.DeepEqual(got, want) {
+	if got, want := cfg.Names, map[string]string{"NICKNAME3": "SERIAL3"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 
@@ -117,12 +112,27 @@ func TestMadbNameClearAll(t *testing.T) {
 	runMadbNameSet(nil, []string{"SERIAL2", "NICKNAME2"}, filename)
 	runMadbNameSet(nil, []string{"SERIAL3", "NICKNAME3"}, filename)
 
+	// Set up some default users. These users should be preserved after running
+	// the "name clear-all" command.
+	runMadbUserSet(nil, []string{"SERIAL1", "0"}, filename)
+	runMadbUserSet(nil, []string{"SERIAL2", "10"}, filename)
+
 	// Run the clear-all command. The file should be empty after running the command.
 	runMadbNameClearAll(nil, []string{}, filename)
 
-	// Check if the file is successfully deleted.
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		t.Fatalf("failed to delete file %q", filename)
+	cfg, err := readConfig(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure that the names are all deleted.
+	if got, want := cfg.Names, map[string]string{}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
+	}
+
+	// Make sure that the default user IDs are preserved.
+	if got, want := cfg.UserIDs, map[string]string{"SERIAL1": "0", "SERIAL2": "10"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmatched results: got %v, want %v", got, want)
 	}
 }
 

@@ -41,7 +41,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 `
 
-	got, err := parseDevicesOutput(output, nil, nil)
+	got, err := parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -74,7 +74,7 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 `
 
-	got, err = parseDevicesOutput(output, nil, nil)
+	got, err = parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -88,7 +88,7 @@ deviceid01       offline usb:3-3.4.3 product:bullhead model:Nexus_5X device:bull
 deviceid02       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:generic
 
 `
-	got, err = parseDevicesOutput(output, nil, nil)
+	got, err = parseDevicesOutput(output, nil)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}
@@ -115,16 +115,17 @@ emulator-5554       device product:sdk_phone_armv7 model:sdk_phone_armv7 device:
 
 	`
 
-	nicknameSerialMap := map[string]string{
-		"MyPhone": "deviceid01",
-		"ARMv7":   "model:sdk_phone_armv7",
+	cfg := &config{
+		Names: map[string]string{
+			"MyPhone": "deviceid01",
+			"ARMv7":   "model:sdk_phone_armv7",
+		},
+		UserIDs: map[string]string{
+			"deviceid01": "10",
+		},
 	}
 
-	serialUserMap := map[string]string{
-		"deviceid01": "10",
-	}
-
-	got, err = parseDevicesOutput(output, nicknameSerialMap, serialUserMap)
+	got, err = parseDevicesOutput(output, cfg)
 	if err != nil {
 		t.Fatalf("failed to parse the output: %v", err)
 	}

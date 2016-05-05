@@ -6,8 +6,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 
 	"v.io/x/lib/cmdline"
@@ -25,7 +23,7 @@ the device serials provided by adb tool.
 }
 
 var cmdMadbNameSet = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbNameSet, getDefaultNameFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbNameSet, getDefaultConfigFilePath},
 	Name:   "set",
 	Short:  "Set a nickname to be used in place of the device serial.",
 	Long: `
@@ -75,30 +73,30 @@ func runMadbNameSet(env *cmdline.Env, args []string, filename string) error {
 		return env.UsageErrorf("Not a valid nickname: %v", nickname)
 	}
 
-	nicknameSerialMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
 
 	// If the nickname is already in use, don't allow it at all.
-	if _, present := nicknameSerialMap[nickname]; present {
+	if _, present := cfg.Names[nickname]; present {
 		return fmt.Errorf("The provided nickname %q is already in use.", nickname)
 	}
 
 	// If the serial number already has an assigned nickname, delete it first.
 	// Need to do this check, because the nickname-serial map should be a one-to-one mapping.
-	if nickname, present := reverseMap(nicknameSerialMap)[serial]; present {
-		delete(nicknameSerialMap, nickname)
+	if nickname, present := reverseMap(cfg.Names)[serial]; present {
+		delete(cfg.Names, nickname)
 	}
 
 	// Add the nickname serial mapping.
-	nicknameSerialMap[nickname] = serial
+	cfg.Names[nickname] = serial
 
-	return writeMapToFile(nicknameSerialMap, filename)
+	return writeConfig(cfg, filename)
 }
 
 var cmdMadbNameUnset = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbNameUnset, getDefaultNameFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbNameUnset, getDefaultConfigFilePath},
 	Name:   "unset",
 	Short:  "Unset a nickname set by the 'madb name set' command.",
 	Long: `
@@ -122,15 +120,15 @@ func runMadbNameUnset(env *cmdline.Env, args []string, filename string) error {
 		return env.UsageErrorf("Not a valid device serial or name: %v", name)
 	}
 
-	nicknameSerialMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
 
 	found := false
-	for nickname, serial := range nicknameSerialMap {
+	for nickname, serial := range cfg.Names {
 		if nickname == name || serial == name {
-			delete(nicknameSerialMap, nickname)
+			delete(cfg.Names, nickname)
 			found = true
 			break
 		}
@@ -140,11 +138,11 @@ func runMadbNameUnset(env *cmdline.Env, args []string, filename string) error {
 		return fmt.Errorf("The provided argument is neither a known nickname nor a device serial.")
 	}
 
-	return writeMapToFile(nicknameSerialMap, filename)
+	return writeConfig(cfg, filename)
 }
 
 var cmdMadbNameList = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbNameList, getDefaultNameFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbNameList, getDefaultConfigFilePath},
 	Name:   "list",
 	Short:  "List all the existing nicknames.",
 	Long: `
@@ -153,7 +151,7 @@ Lists all the currently stored nicknames of device serials.
 }
 
 func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
-	nicknameSerialMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
@@ -162,7 +160,7 @@ func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
 	fmt.Println("Serial          Nickname")
 	fmt.Println("========================")
 
-	for nickname, serial := range nicknameSerialMap {
+	for nickname, serial := range cfg.Names {
 		fmt.Printf("%v\t%v\n", serial, nickname)
 	}
 
@@ -170,7 +168,7 @@ func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
 }
 
 var cmdMadbNameClearAll = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbNameClearAll, getDefaultNameFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbNameClearAll, getDefaultConfigFilePath},
 	Name:   "clear-all",
 	Short:  "Clear all the existing nicknames.",
 	Long: `
@@ -179,16 +177,13 @@ Clears all the currently stored nicknames of device serials.
 }
 
 func runMadbNameClearAll(env *cmdline.Env, args []string, filename string) error {
-	return os.Remove(filename)
-}
-
-func getDefaultNameFilePath() (string, error) {
-	configDir, err := getConfigDir()
+	cfg, err := readConfig(filename)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return filepath.Join(configDir, "nicknames"), nil
+	cfg.Names = make(map[string]string)
+	return writeConfig(cfg, filename)
 }
 
 func isValidDeviceSerial(serial string) bool {

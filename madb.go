@@ -145,28 +145,23 @@ func (d device) displayName() string {
 }
 
 // Runs "adb devices -l" command, and parses the result to get all the device serial numbers.
-func getDevices(nicknameFile string, userFile string) ([]device, error) {
+func getDevices(configFile string) ([]device, error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	output := sh.Cmd("adb", "devices", "-l").Stdout()
 
-	nicknameSerialMap, err := readMapFromFile(nicknameFile)
+	cfg, err := readConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	serialUserMap, err := readMapFromFile(userFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseDevicesOutput(output, nicknameSerialMap, serialUserMap)
+	return parseDevicesOutput(output, cfg)
 }
 
 // Parses the output generated from "adb devices -l" command and return the list of device serial numbers
 // Devices that are currently offline are excluded from the returned list.
-func parseDevicesOutput(output string, nicknameSerialMap map[string]string, serialUserMap map[string]string) ([]device, error) {
+func parseDevicesOutput(output string, cfg *config) ([]device, error) {
 	lines := strings.Split(output, "\n")
 
 	result := []device{}
@@ -198,26 +193,28 @@ func parseDevicesOutput(output string, nicknameSerialMap map[string]string, seri
 			d.Type = realDevice
 		}
 
-		// Determine whether there is a nickname defined for this device,
-		// so that the console output prefix can display the nickname instead of the serial.
-	NSMLoop:
-		for nickname, serial := range nicknameSerialMap {
-			if d.Serial == serial {
-				d.Nickname = nickname
-				break
-			}
-
-			for _, qualifier := range d.Qualifiers {
-				if qualifier == serial {
+		if cfg != nil {
+			// Determine whether there is a nickname defined for this device,
+			// so that the console output prefix can display the nickname instead of the serial.
+		NSMLoop:
+			for nickname, serial := range cfg.Names {
+				if d.Serial == serial {
 					d.Nickname = nickname
-					break NSMLoop
+					break
+				}
+
+				for _, qualifier := range d.Qualifiers {
+					if qualifier == serial {
+						d.Nickname = nickname
+						break NSMLoop
+					}
 				}
 			}
-		}
 
-		// Determine whether there is a default user ID set by 'madb user'.
-		if userID, ok := serialUserMap[d.Serial]; ok {
-			d.UserID = userID
+			// Determine whether there is a default user ID set by 'madb user'.
+			if userID, ok := cfg.UserIDs[d.Serial]; ok {
+				d.UserID = userID
+			}
 		}
 
 		result = append(result, d)
@@ -229,17 +226,12 @@ func parseDevicesOutput(output string, nicknameSerialMap map[string]string, seri
 // Gets all the devices specified by the device specifier flags.
 // Intended to be used by most of the madb sub-commands except for 'madb name'.
 func getSpecifiedDevices() ([]device, error) {
-	nicknameFile, err := getDefaultNameFilePath()
+	configFile, err := getDefaultConfigFilePath()
 	if err != nil {
 		return nil, err
 	}
 
-	userFile, err := getDefaultUserFilePath()
-	if err != nil {
-		return nil, err
-	}
-
-	allDevices, err := getDevices(nicknameFile, userFile)
+	allDevices, err := getDevices(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -336,6 +328,18 @@ func shouldIncludeDevice(d device, specs []deviceSpec) bool {
 	return false
 }
 
+// config contains various configuration information for madb.
+type config struct {
+	// Version indicates the version string of madb binary by which this config
+	// was written to the file, in case it has to be migrated to a newer schema.
+	Version string
+	// Names keeps the mapping between device nicknames and their serials.
+	Names map[string]string
+	// UserIDs keeps the mapping between device serials and their default user
+	// IDs.
+	UserIDs map[string]string
+}
+
 // Returns the config dir located at "~/.madb"
 func getConfigDir() (string, error) {
 	home := os.Getenv("HOME")
@@ -349,6 +353,72 @@ func getConfigDir() (string, error) {
 	}
 
 	return configDir, nil
+}
+
+// getDefaultConfigFilePath returns the default location of the config file.
+func getDefaultConfigFilePath() (string, error) {
+	configDir, err := getConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(configDir, "config"), nil
+}
+
+// readConfig reads the provided file and reconstructs the config struct.
+// When the file does not exist, it returns an empty config with the members
+// initialized as empty maps.
+func readConfig(filename string) (*config, error) {
+	result := new(config)
+
+	// The file may not exist or be empty when there are no stored data.
+	if stat, err := os.Stat(filename); os.IsNotExist(err) || (err == nil && stat.Size() == 0) {
+		result.Names = make(map[string]string)
+		result.UserIDs = make(map[string]string)
+		return result, nil
+	}
+
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+
+	// Decoding might fail when the file is somehow corrupted, or when the schema is updated.
+	// In such cases, move on after resetting the cache file instead of exiting the app.
+	if err := decoder.Decode(result); err != nil {
+		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the file: %q. Resetting the file.\n", err)
+		if err := os.Remove(f.Name()); err != nil {
+			return nil, err
+		}
+
+		result = new(config)
+	}
+
+	if result.Names == nil {
+		result.Names = make(map[string]string)
+	}
+	if result.UserIDs == nil {
+		result.Names = make(map[string]string)
+	}
+
+	return result, nil
+}
+
+// writeConfig takes a config and writes it into the provided file name.
+func writeConfig(cfg *config, filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	cfg.Version = version
+
+	encoder := json.NewEncoder(f)
+	return encoder.Encode(*cfg)
 }
 
 type subCommandRunner struct {
@@ -664,50 +734,6 @@ func extractPropertiesFromGradle(key variantKey) (variantProperties, error) {
 	}
 
 	return result, nil
-}
-
-// readMapFromFile reads the provided file and reconstructs the string => string map.
-// When the file does not exist, it returns an empty map (instead of nil), so that callers can safely add new entries.
-func readMapFromFile(filename string) (map[string]string, error) {
-	result := make(map[string]string)
-
-	// The file may not exist or be empty when there are no stored data.
-	if stat, err := os.Stat(filename); os.IsNotExist(err) || (err == nil && stat.Size() == 0) {
-		return result, nil
-	}
-
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	decoder := json.NewDecoder(f)
-
-	// Decoding might fail when the file is somehow corrupted, or when the schema is updated.
-	// In such cases, move on after resetting the cache file instead of exiting the app.
-	if err := decoder.Decode(&result); err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: Could not decode the file: %q. Resetting the file.\n", err)
-		if err := os.Remove(f.Name()); err != nil {
-			return nil, err
-		}
-
-		return make(map[string]string), nil
-	}
-
-	return result, nil
-}
-
-// writeMapToFile takes a string => string map and writes it into the provided file name.
-func writeMapToFile(data map[string]string, filename string) error {
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	encoder := json.NewEncoder(f)
-	return encoder.Encode(data)
 }
 
 // expandKeywords takes a command line argument and a device configuration, and returns a new

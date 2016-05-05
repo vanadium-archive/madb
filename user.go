@@ -6,8 +6,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	"v.io/x/lib/cmdline"
@@ -46,7 +44,7 @@ For more details on how to obtain the user ID from an Android device, see 'madb 
 }
 
 var cmdMadbUserSet = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbUserSet, getDefaultUserFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbUserSet, getDefaultConfigFilePath},
 	Name:   "set",
 	Short:  "Set a default user ID to be used for the given device.",
 	Long: `
@@ -104,19 +102,18 @@ func runMadbUserSet(env *cmdline.Env, args []string, filename string) error {
 		return fmt.Errorf("Not a valid user ID: %v", userID)
 	}
 
-	// Get the <device_serial, user_id> mapping.
-	serialUserMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
 
 	// Add the <device_serial, user_id> mapping for the specified device.
-	serialUserMap[serial] = userID
-	return writeMapToFile(serialUserMap, filename)
+	cfg.UserIDs[serial] = userID
+	return writeConfig(cfg, filename)
 }
 
 var cmdMadbUserUnset = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbUserUnset, getDefaultUserFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbUserUnset, getDefaultConfigFilePath},
 	Name:   "unset",
 	Short:  "Unset the default user ID set by the 'madb user set' command.",
 	Long: `
@@ -144,19 +141,17 @@ func runMadbUserUnset(env *cmdline.Env, args []string, filename string) error {
 		return fmt.Errorf("Not a valid device serial: %v", serial)
 	}
 
-	// Get the <device_serial, user_id> mapping.
-	serialUserMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
 
-	// Delete the <device_serial, user_id> mapping for the specified device.
-	delete(serialUserMap, serial)
-	return writeMapToFile(serialUserMap, filename)
+	delete(cfg.UserIDs, serial)
+	return writeConfig(cfg, filename)
 }
 
 var cmdMadbUserList = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbUserList, getDefaultUserFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbUserList, getDefaultConfigFilePath},
 	Name:   "list",
 	Short:  "List all the existing default user IDs.",
 	Long: `
@@ -165,8 +160,7 @@ Lists all the currently stored default user IDs for devices.
 }
 
 func runMadbUserList(env *cmdline.Env, args []string, filename string) error {
-	// Get the <device_serial, user_id> mapping.
-	serialUserMap, err := readMapFromFile(filename)
+	cfg, err := readConfig(filename)
 	if err != nil {
 		return err
 	}
@@ -175,7 +169,7 @@ func runMadbUserList(env *cmdline.Env, args []string, filename string) error {
 	fmt.Println("Device Serial    User ID")
 	fmt.Println("========================")
 
-	for s, u := range serialUserMap {
+	for s, u := range cfg.UserIDs {
 		fmt.Printf("%v\t%v\n", s, u)
 	}
 
@@ -183,7 +177,7 @@ func runMadbUserList(env *cmdline.Env, args []string, filename string) error {
 }
 
 var cmdMadbUserClearAll = &cmdline.Command{
-	Runner: subCommandRunnerWithFilepath{runMadbUserClearAll, getDefaultUserFilePath},
+	Runner: subCommandRunnerWithFilepath{runMadbUserClearAll, getDefaultConfigFilePath},
 	Name:   "clear-all",
 	Short:  "Clear all the existing default user settings.",
 	Long: `
@@ -194,14 +188,11 @@ This command clears the default user IDs regardless of whether the device is cur
 }
 
 func runMadbUserClearAll(env *cmdline.Env, args []string, filename string) error {
-	return os.Remove(filename)
-}
-
-func getDefaultUserFilePath() (string, error) {
-	configDir, err := getConfigDir()
+	cfg, err := readConfig(filename)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return filepath.Join(configDir, "users"), nil
+	cfg.UserIDs = make(map[string]string)
+	return writeConfig(cfg, filename)
 }
