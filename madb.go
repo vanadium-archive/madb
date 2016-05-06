@@ -370,8 +370,8 @@ var _ cmdline.Runner = (*subCommandRunner)(nil)
 // Invokes the sub command on all the devices in parallel.
 func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 	prefixFlag = strings.ToLower(prefixFlag)
-	if prefixFlag != "auto" && prefixFlag != "serial" && prefixFlag != "none" {
-		return fmt.Errorf(`The -prefix flag value must be one of "auto", "serial", or "none".`)
+	if prefixFlag != "name" && prefixFlag != "serial" && prefixFlag != "none" {
+		return fmt.Errorf(`The -prefix flag value must be one of "name", "serial", or "none".`)
 	}
 
 	if err := startAdbServer(); err != nil {
