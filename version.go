@@ -13,4 +13,4 @@ package main
 // version, for example when the user gets this tool with 'go get' command.
 // This value is intended to be overwritten by the command line argument of 'go build', when
 // releasing an official version. See "scripts/release.go" for more details.
-var version = "v1.0.0-develop"
+var version = "v1.1.0-develop"
