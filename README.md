@@ -3,7 +3,7 @@
 [![Latest Release][release-image]][release-link]
 [![Build Status][travis-image]][travis-link]
 [![Coverage Status][coveralls-image]][coveralls-link]
-[![API Documentation][godoc-image]][godoc-link]
+[![Online Documentation][godoc-image]][godoc-link]
 
 Madb is a command line tool that wraps Android Debug Bridge (adb) and provides
 various features for controlling multiple Android devices concurrently.
@@ -29,10 +29,22 @@ installed and accessible from `PATH`. ADB comes with the Android SDK.
 
 # Installing madb
 
+## Using Homebrew
+
+On Mac OS X, `madb` can be installed using [Homebrew](http://brew.sh/).
+
+    $ brew tap baku-io/baku
+    $ brew install madb
+
+To upgrade `madb` to the most recent version,
+
+    $ brew update
+    $ brew upgrade madb
+
 ## Downloading the Latest Release
 
 The latest release of `madb` can be downloaded from the
-[**releases page**](https://github.com/vanadium/madb/releases/latest).
+[**Releases Page**](https://github.com/vanadium/madb/releases/latest).
 
 Download the binary for your platform, and extract it to your desired location.
 Make sure to add the location in your `PATH` environment variable to use `madb`
@@ -57,7 +69,8 @@ current version in the `master` branch), not the stable release.
 
 This section introduces the most notable features of `madb`. To see the complete
 list of features and their options, please use `madb help` or
-`madb help <topic>`.
+`madb help <topic>` in your command line, or refer to our
+[Online Documentation][godoc-link].
 
 ## Running an Android App on All Devices
 
@@ -136,9 +149,15 @@ $ madb exec shell date
 $ _
 ```
 
+As a special case, `madb exec shell <args...>` command can be shortened as
+`madb shell <args...>`. Therefore, the above command can be shortened as:
+
+    $ madb shell date
+
 **NOTE**: Launching an interactive shell (i.e. `adb shell` without arguments) on
-all devices is not supported, and the behavior of `madb exec shell` without any
-arguments is undefined. Always provide a specific shell command to execute.
+all devices is not supported, and the behavior of `madb exec shell` or
+`madb shell` without any arguments is undefined. Always provide a specific shell
+command to execute.
 
 If you want to copy a configuration file on your local computer to all devices,
 you can use `madb exec` to issue `adb push` command on all devices as following:
@@ -214,6 +233,28 @@ For example, to launch your app only on emulators:
 To see the logcat messages from `Alice` and `Bob` devices and not from others:
 
     $ madb -n=Alice,Bob exec logcat
+
+## Keyword Expansion
+
+There are a few pre-defined keywords that can be expanded within an argument of
+`madb exec` command.
+
+* `{{index}}`: the index of the current device, starting from 1.
+* `{{name}}`: the nickname of the current device, or the serial number if a
+  nickname is not set.
+* `{{serial}}`: the serial number of the current device.
+
+Suppose there are three named devices: `Alice`, `Bob`, and `Carol`.
+You might want to push some configuration files that are slightly different for
+each device before running your app. For example, you can:
+
+* copy local `Alice.config` file to `/sdcard/yourapp.config` on device `Alice`
+* copy local `Bob.config` file to `/sdcard/yourapp.config` on device `Bob`
+* copy local `Carol.config` file to `/sdcard/yourapp.config` on device `Carol`
+
+with the following one-line `madb` command.
+
+    $ madb exec push {{name}}.config /sdcard/yourapp.config
 
 [coveralls-image]: https://img.shields.io/coveralls/vanadium/madb/master.svg?maxAge=2592000?style=flat-square
 [coveralls-link]: https://coveralls.io/github/vanadium/madb
