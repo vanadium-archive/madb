@@ -84,6 +84,7 @@ var cmdMadb = &cmdline.Command{
 	Children: []*cmdline.Command{
 		cmdMadbClearData,
 		cmdMadbExec,
+		cmdMadbExtern,
 		cmdMadbInstall,
 		cmdMadbName,
 		cmdMadbShell,

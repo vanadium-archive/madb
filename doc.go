@@ -18,6 +18,7 @@ The madb commands are:
    clear-data  Clear your app data from all devices
    exec        Run the provided adb command on all devices and emulators
                concurrently
+   extern      Run the provided external command for all devices
    install     Install your app on all devices
    name        Manage device nicknames
    shell       Run the provided adb shell command on all devices and emulators
@@ -148,6 +149,58 @@ Usage:
 emulators.
 
 The madb exec flags are:
+ -d=false
+   Restrict the command to only run on real devices.
+ -e=false
+   Restrict the command to only run on emulators.
+ -n=
+   Comma-separated device serials, qualifiers, device indices (e.g., '@1',
+   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
+   '@' sign followed by the index of the device in the output of 'adb devices'
+   command, starting from 1. Command will be run only on specified devices.
+ -prefix=name
+   Specify which output prefix to use. You can choose from the following
+   options:
+       name   - Display the nickname of the device. The serial number is used instead if the
+                nickname is not set for the given device.
+       serial - Display the serial number of the device.
+       none   - Do not display the output prefix.
+ -seq=false
+   Run the command sequentially, instead of running it in parallel.
+
+Madb extern - Run the provided external command for all devices
+
+Runs the provided external command for all devices and emulators concurrently.
+
+For each available device, this command will spawn a sub-shell with the
+ANDROID_SERIAL environmental variable set to the target device serial, and then
+will run the provided external command.
+
+There are a few pre-defined keywords that can be expanded within an argument.
+
+    "{{index}}"  : the index of the current device, starting from 1.
+    "{{name}}"   : the nickname of the current device, or the serial number if a nickname is not set.
+    "{{serial}}" : the serial number of the current device.
+
+For example, the following line:
+
+    madb extern echo I am {{name}}, and my serial number is {{serial}}.
+
+prints out the name and serial pairs for each device.
+
+Note that you should type in "{{name}}" as-is, with the opening/closing curly
+braces, similar to when you're using a template library such as mustache.
+
+This command is intended to be used with external commands that are designed to
+work with only a single device at a time (e.g. gomobile, flutter).
+
+Usage:
+   madb extern [flags] <external_command>
+
+<external_command> is an external shell command to run for all devices and
+emulators.
+
+The madb extern flags are:
  -d=false
    Restrict the command to only run on real devices.
  -e=false
