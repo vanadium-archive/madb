@@ -401,7 +401,7 @@ func readConfig(filename string) (*config, error) {
 		result.Names = make(map[string]string)
 	}
 	if result.UserIDs == nil {
-		result.Names = make(map[string]string)
+		result.UserIDs = make(map[string]string)
 	}
 
 	return result, nil
