@@ -4,9 +4,11 @@
 [![Build Status][travis-image]][travis-link]
 [![Coverage Status][coveralls-image]][coveralls-link]
 [![Online Documentation][godoc-image]][godoc-link]
+[![Slides][slides-image]][slides-link]
 
 Madb is a command line tool that wraps Android Debug Bridge (adb) and provides
 various features for controlling multiple Android devices concurrently.
+This [slide deck][slides-link] illustrates how madb works with multiple devices.
 
 This tool is part of the Vanadium effort to build a framework and a set of
 development tools to enable and ease the creation of multi-device user
@@ -71,6 +73,8 @@ This section introduces the most notable features of `madb`. To see the complete
 list of features and their options, please use `madb help` or
 `madb help <topic>` in your command line, or refer to our
 [Online Documentation][godoc-link].
+
+Also, please refer to this [**slide deck**][slides-link], which illustrates how madb works with multiple devices.
 
 ## Running an Android App on All Devices
 
@@ -262,5 +266,7 @@ with the following one-line `madb` command.
 [godoc-link]: https://godoc.org/github.com/vanadium/madb
 [release-image]: https://img.shields.io/github/release/vanadium/madb.svg?maxAge=2592000?style=flat-square
 [release-link]: https://github.com/vanadium/madb/releases/latest
+[slides-image]: https://img.shields.io/badge/tech%20talk-slides-red.svg
+[slides-link]: https://goo.gl/6YWkSJ
 [travis-image]: https://img.shields.io/travis/vanadium/madb/master.svg?style=flat-square)
 [travis-link]: https://travis-ci.org/vanadium/madb
