@@ -308,6 +308,10 @@ func TestExtractPropertiesFromGradle(t *testing.T) {
 			variantKey{"testAndroidMultiFlavor/app", "", "proRelease"},
 			variantProperties{AppID: "io.v.testProjectId.pro", Activity: "io.v.testProjectPackage.LauncherActivity"},
 		},
+		{
+			variantKey{"testApplicationIdFallback", "", ""},
+			variantProperties{AppID: "io.v.testProjectPackage", Activity: "io.v.testProjectPackage.LauncherActivity"},
+		},
 	}
 
 	for i, test := range tests {

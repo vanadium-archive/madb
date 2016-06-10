@@ -42,7 +42,7 @@ void extract(project) {
         VariantName:    targetVariant.name,
         CleanTask:      project.path + ":clean",
         AssembleTask:   targetVariant.assemble.path,
-        AppID:          getApplicationId(targetVariant),
+        AppID:          getApplicationId(project, targetVariant),
         Activity:       getMainActivity(project),
         AbiFilters:     getAbiFilters(targetVariant),
         VariantOutputs: getVariantOutputs(targetVariant)
@@ -130,13 +130,31 @@ Object getTargetVariant(project) {
 }
 
 // Returns the application ID for the given variant.
-String getApplicationId(variant) {
+String getApplicationId(project, variant) {
     def suffix = variant.buildType.applicationIdSuffix
     if (suffix == null) {
         suffix = ""
     }
 
-    return variant.mergedFlavor.applicationId + suffix
+    def appId = variant.mergedFlavor.applicationId
+
+    // Fall back to AndroidManifest.xml if the applicationId is not explicitly defined.
+    // See the bottom notes at:
+    // http://tools.android.com/tech-docs/new-build-system/applicationid-vs-packagename
+    if (appId == null) {
+        appId = getApplicationIdFromManifest(project)
+    }
+
+    return appId + suffix
+}
+
+// Returns the application ID extracted from the AndroidManifest.xml file.
+String getApplicationIdFromManifest(project) {
+    def manifestFile = getAndroidManifestLocation(project)
+
+    // Parse the xml file and find the package name.
+    def manifest = new XmlSlurper().parse(manifestFile)
+    return manifest.'@package'.text()
 }
 
 String getMainActivity(project) {
