@@ -85,6 +85,7 @@ var cmdMadb = &cmdline.Command{
 		cmdMadbClearData,
 		cmdMadbExec,
 		cmdMadbExtern,
+		cmdMadbGroup,
 		cmdMadbInstall,
 		cmdMadbName,
 		cmdMadbShell,
@@ -336,6 +337,10 @@ type config struct {
 	Version string
 	// Names keeps the mapping between device nicknames and their serials.
 	Names map[string]string
+	// Groups keeps the device group definitions. A group can contain multiple
+	// devices, each of which is denoted by its name, serial, or index. A group
+	// can also include other groups.
+	Groups map[string][]string
 	// UserIDs keeps the mapping between device serials and their default user
 	// IDs.
 	UserIDs map[string]string
@@ -375,6 +380,7 @@ func readConfig(filename string) (*config, error) {
 	// The file may not exist or be empty when there are no stored data.
 	if stat, err := os.Stat(filename); os.IsNotExist(err) || (err == nil && stat.Size() == 0) {
 		result.Names = make(map[string]string)
+		result.Groups = make(map[string][]string)
 		result.UserIDs = make(map[string]string)
 		return result, nil
 	}
@@ -401,6 +407,9 @@ func readConfig(filename string) (*config, error) {
 	if result.Names == nil {
 		result.Names = make(map[string]string)
 	}
+	if result.Groups == nil {
+		result.Groups = make(map[string][]string)
+	}
 	if result.UserIDs == nil {
 		result.UserIDs = make(map[string]string)
 	}
@@ -422,6 +431,30 @@ func writeConfig(cfg *config, filename string) error {
 	return encoder.Encode(*cfg)
 }
 
+func isNameInUse(name string, cfg *config) bool {
+	return isDeviceNickname(name, cfg) || isGroupName(name, cfg)
+}
+
+func isDeviceNickname(name string, cfg *config) bool {
+	_, ok := cfg.Names[name]
+	return ok
+}
+
+func isGroupName(name string, cfg *config) bool {
+	_, ok := cfg.Groups[name]
+	return ok
+}
+
+func isValidSerial(serial string) bool {
+	r := regexp.MustCompile(`^([A-Za-z0-9:\-\._]+|@\d+)$`)
+	return r.MatchString(serial)
+}
+
+func isValidName(name string) bool {
+	r := regexp.MustCompile(`^\w+$`)
+	return r.MatchString(name)
+}
+
 type subCommandRunner struct {
 	// init is an optional function that does some initial work that should only
 	// be performed once, before directing the command to all the devices.
@@ -441,8 +474,9 @@ var _ cmdline.Runner = (*subCommandRunner)(nil)
 // Invokes the sub command on all the devices in parallel.
 func (r subCommandRunner) Run(env *cmdline.Env, args []string) error {
 	prefixFlag = strings.ToLower(prefixFlag)
-	if prefixFlag != "name" && prefixFlag != "serial" && prefixFlag != "none" {
-		return fmt.Errorf(`The -prefix flag value must be one of "name", "serial", or "none".`)
+	allowed := []string{"name", "serial", "none"}
+	if !isStringInSlice(prefixFlag, allowed) {
+		return fmt.Errorf("The -prefix flag value must be one of %v", strings.Join(allowed, ", "))
 	}
 
 	if err := startAdbServer(); err != nil {
@@ -755,6 +789,17 @@ func expandKeywords(arg string, d device) string {
 	})
 
 	return result
+}
+
+// isStringInSlice determines whether the given string appears in the slice.
+func isStringInSlice(str string, slice []string) bool {
+	for _, elem := range slice {
+		if str == elem {
+			return true
+		}
+	}
+
+	return false
 }
 
 type pathProvider func() (string, error)

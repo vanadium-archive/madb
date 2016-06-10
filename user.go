@@ -92,7 +92,7 @@ func runMadbUserSet(env *cmdline.Env, args []string, filename string) error {
 	// TODO(youngseokyoon): make it possible to specify the device using its nickname or index.
 	// Validate the device serial
 	serial := args[0]
-	if !isValidDeviceSerial(serial) {
+	if !isValidSerial(serial) {
 		return fmt.Errorf("Not a valid device serial: %v", serial)
 	}
 
@@ -137,7 +137,7 @@ func runMadbUserUnset(env *cmdline.Env, args []string, filename string) error {
 	// TODO(youngseokyoon): make it possible to specify the device using its nickname or index.
 	// Validate the device serial
 	serial := args[0]
-	if !isValidDeviceSerial(serial) {
+	if !isValidSerial(serial) {
 		return fmt.Errorf("Not a valid device serial: %v", serial)
 	}
 

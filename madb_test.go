@@ -514,3 +514,55 @@ func TestOutputPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestIsValidSerial(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		// The following strings should be accepted
+		{"HT4BVWV00023", true},
+		{"01023f5e2fd2accf", true},
+		{"usb:3-3.4.2", true},
+		{"product:volantisg", true},
+		{"model:Nexus_9", true},
+		{"device:flounder_lte", true},
+		{"@1", true},
+		{"@2", true},
+		// The following strings should not be accepted
+		{"have spaces", false},
+		{"@abcd", false},
+		{"#not_allowed_chars~", false},
+	}
+
+	for _, test := range tests {
+		if got := isValidSerial(test.input); got != test.want {
+			t.Fatalf("unmatched results for serial '%v': got %v, want %v", test.input, got, test.want)
+		}
+	}
+}
+
+func TestIsValidName(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		// The following strings should be accepted
+		{"Nexus5X", true},
+		{"Nexus9", true},
+		{"P1", true},
+		{"P2", true},
+		{"Tablet", true},
+		// The following strings should not be accepted
+		{"have spaces", false},
+		{"@1", false},
+		{"@abcd", false},
+		{"#not_allowed_chars~", false},
+	}
+
+	for _, test := range tests {
+		if got := isValidName(test.input); got != test.want {
+			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", test.input, got, test.want)
+		}
+	}
+}

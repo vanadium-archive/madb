@@ -19,6 +19,7 @@ The madb commands are:
    exec        Run the provided adb command on all devices and emulators
                concurrently
    extern      Run the provided external command for all devices
+   group       Manage device groups
    install     Install your app on all devices
    name        Manage device nicknames
    shell       Run the provided adb shell command on all devices and emulators
@@ -219,6 +220,39 @@ The madb extern flags are:
        none   - Do not display the output prefix.
  -seq=false
    Run the command sequentially, instead of running it in parallel.
+
+Madb group - Manage device groups
+
+Manages device groups, each of which can have one or more device members. The
+device groups can be used for specifying the target devices of other madb
+commands.
+
+Usage:
+   madb group [flags] <command>
+
+The madb group commands are:
+   add         Add devices to a device group
+
+Madb group add - Add devices to a device group
+
+Adds devices to a device group. This command also creates the group, if the
+group does not exist yet. The device group can be used when specifying devices
+in any madb commands.
+
+When creating a new device group with this command, the provided name must not
+conflict with an existing device nickname (see: madb help name set).
+
+A group can contain another device group, in which case all the members of the
+other group will also be considered as members of the current group.
+
+Usage:
+   madb group add [flags] <group_name> <member1> [<member2> ...]
+
+<group_name> is an alpha-numeric string with no special characters or spaces.
+This name must not be an existing device nickname.
+
+<member> is a member specifier, which can be one of device serial, qualifier,
+device index (e.g., '@1', '@2'), device nickname, or another device group.
 
 Madb install - Install your app on all devices
 

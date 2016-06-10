@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"regexp"
 
 	"v.io/x/lib/cmdline"
 )
@@ -65,11 +64,11 @@ func runMadbNameSet(env *cmdline.Env, args []string, filename string) error {
 	}
 
 	serial, nickname := args[0], args[1]
-	if !isValidDeviceSerial(serial) {
+	if !isValidSerial(serial) {
 		return env.UsageErrorf("Not a valid device serial: %v", serial)
 	}
 
-	if !isValidNickname(nickname) {
+	if !isValidName(nickname) {
 		return env.UsageErrorf("Not a valid nickname: %v", nickname)
 	}
 
@@ -79,14 +78,14 @@ func runMadbNameSet(env *cmdline.Env, args []string, filename string) error {
 	}
 
 	// If the nickname is already in use, don't allow it at all.
-	if _, present := cfg.Names[nickname]; present {
+	if isNameInUse(nickname, cfg) {
 		return fmt.Errorf("The provided nickname %q is already in use.", nickname)
 	}
 
 	// If the serial number already has an assigned nickname, delete it first.
 	// Need to do this check, because the nickname-serial map should be a one-to-one mapping.
-	if nickname, present := reverseMap(cfg.Names)[serial]; present {
-		delete(cfg.Names, nickname)
+	if name, present := reverseMap(cfg.Names)[serial]; present {
+		delete(cfg.Names, name)
 	}
 
 	// Add the nickname serial mapping.
@@ -116,7 +115,7 @@ func runMadbNameUnset(env *cmdline.Env, args []string, filename string) error {
 	}
 
 	name := args[0]
-	if !isValidDeviceSerial(name) && !isValidNickname(name) {
+	if !isValidSerial(name) && !isValidName(name) {
 		return env.UsageErrorf("Not a valid device serial or name: %v", name)
 	}
 
@@ -184,16 +183,6 @@ func runMadbNameClearAll(env *cmdline.Env, args []string, filename string) error
 
 	cfg.Names = make(map[string]string)
 	return writeConfig(cfg, filename)
-}
-
-func isValidDeviceSerial(serial string) bool {
-	r := regexp.MustCompile(`^([A-Za-z0-9:\-\._]+|@\d+)$`)
-	return r.MatchString(serial)
-}
-
-func isValidNickname(nickname string) bool {
-	r := regexp.MustCompile(`^\w+$`)
-	return r.MatchString(nickname)
 }
 
 // reverseMap returns a new map which contains reversed key, value pairs in the original map.

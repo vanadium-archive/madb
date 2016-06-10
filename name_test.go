@@ -57,6 +57,17 @@ func TestMadbNameSet(t *testing.T) {
 	if err = runMadbNameSet(nil, []string{"SERIAL3", "NN1"}, filename); err == nil {
 		t.Fatalf("expected an error but succeeded.")
 	}
+
+	// Try an existing group name and see if it fails.
+	err = runMadbGroupAdd(nil, []string{"GROUP1", "SERIAL1"}, filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runMadbNameSet(nil, []string{"SERIAL4", "GROUP1"}, filename)
+	if err == nil {
+		t.Fatalf("error expected but got: %v", err)
+	}
 }
 
 func TestMadbNameUnset(t *testing.T) {
@@ -133,57 +144,5 @@ func TestMadbNameClearAll(t *testing.T) {
 	// Make sure that the default user IDs are preserved.
 	if got, want := cfg.UserIDs, map[string]string{"SERIAL1": "0", "SERIAL2": "10"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmatched results: got %v, want %v", got, want)
-	}
-}
-
-func TestIsValidDeviceSerial(t *testing.T) {
-	tests := []struct {
-		input string
-		want  bool
-	}{
-		// The following strings should be accepted
-		{"HT4BVWV00023", true},
-		{"01023f5e2fd2accf", true},
-		{"usb:3-3.4.2", true},
-		{"product:volantisg", true},
-		{"model:Nexus_9", true},
-		{"device:flounder_lte", true},
-		{"@1", true},
-		{"@2", true},
-		// The following strings should not be accepted
-		{"have spaces", false},
-		{"@abcd", false},
-		{"#not_allowed_chars~", false},
-	}
-
-	for _, test := range tests {
-		if got := isValidDeviceSerial(test.input); got != test.want {
-			t.Fatalf("unmatched results for serial '%v': got %v, want %v", test.input, got, test.want)
-		}
-	}
-}
-
-func TestIsValidNickname(t *testing.T) {
-	tests := []struct {
-		input string
-		want  bool
-	}{
-		// The following strings should be accepted
-		{"Nexus5X", true},
-		{"Nexus9", true},
-		{"P1", true},
-		{"P2", true},
-		{"Tablet", true},
-		// The following strings should not be accepted
-		{"have spaces", false},
-		{"@1", false},
-		{"@abcd", false},
-		{"#not_allowed_chars~", false},
-	}
-
-	for _, test := range tests {
-		if got := isValidNickname(test.input); got != test.want {
-			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", test.input, got, test.want)
-		}
 	}
 }
