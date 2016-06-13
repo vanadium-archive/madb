@@ -231,11 +231,12 @@ Usage:
    madb group [flags] <command>
 
 The madb group commands are:
-   add         Add devices to a device group
+   add         Add members to a device group
+   remove      Remove members from a device group
 
-Madb group add - Add devices to a device group
+Madb group add - Add members to a device group
 
-Adds devices to a device group. This command also creates the group, if the
+Adds members to a device group. This command also creates the group, if the
 group does not exist yet. The device group can be used when specifying devices
 in any madb commands.
 
@@ -250,6 +251,20 @@ Usage:
 
 <group_name> is an alpha-numeric string with no special characters or spaces.
 This name must not be an existing device nickname.
+
+<member> is a member specifier, which can be one of device serial, qualifier,
+device index (e.g., '@1', '@2'), device nickname, or another device group.
+
+Madb group remove - Remove members from a device group
+
+Removes members from an existing device group. If there are no remaining members
+after that, the group gets deleted.
+
+Usage:
+   madb group remove [flags] <group_name> <member1> [<member2> ...]
+
+<group_name> is an alpha-numeric string with no special characters or spaces.
+This name must be an existing device group name.
 
 <member> is a member specifier, which can be one of device serial, qualifier,
 device index (e.g., '@1', '@2'), device nickname, or another device group.

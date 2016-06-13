@@ -13,7 +13,6 @@ import (
 )
 
 // TODO(youngseokyoon): implement the following sub-commands.
-//  - remove:    remove members from an existing group
 //  - rename:    rename a group
 //  - delete:    delete a group
 //  - list:      list all the groups and their members
@@ -22,7 +21,7 @@ import (
 // TODO(youngseokyoon): use the groups for filtering devices.
 
 var cmdMadbGroup = &cmdline.Command{
-	Children:         []*cmdline.Command{cmdMadbGroupAdd},
+	Children:         []*cmdline.Command{cmdMadbGroupAdd, cmdMadbGroupRemove},
 	Name:             "group",
 	DontInheritFlags: true,
 	Short:            "Manage device groups",
@@ -36,9 +35,9 @@ commands.
 var cmdMadbGroupAdd = &cmdline.Command{
 	Runner: subCommandRunnerWithFilepath{runMadbGroupAdd, getDefaultConfigFilePath},
 	Name:   "add",
-	Short:  "Add devices to a device group",
+	Short:  "Add members to a device group",
 	Long: `
-Adds devices to a device group. This command also creates the group, if the
+Adds members to a device group. This command also creates the group, if the
 group does not exist yet. The device group can be used when specifying devices
 in any madb commands.
 
@@ -93,6 +92,54 @@ func runMadbGroupAdd(env *cmdline.Env, args []string, filename string) error {
 	return writeConfig(cfg, filename)
 }
 
+var cmdMadbGroupRemove = &cmdline.Command{
+	Runner: subCommandRunnerWithFilepath{runMadbGroupRemove, getDefaultConfigFilePath},
+	Name:   "remove",
+	Short:  "Remove members from a device group",
+	Long: `
+Removes members from an existing device group. If there are no remaining members
+after that, the group gets deleted.
+`,
+	ArgsName: "<group_name> <member1> [<member2> ...]",
+	ArgsLong: `
+<group_name> is an alpha-numeric string with no special characters or spaces.
+This name must be an existing device group name.
+
+<member> is a member specifier, which can be one of device serial, qualifier,
+device index (e.g., '@1', '@2'), device nickname, or another device group.
+`,
+}
+
+func runMadbGroupRemove(env *cmdline.Env, args []string, filename string) error {
+	// Check if the arguments are valid.
+	if len(args) < 2 {
+		return env.UsageErrorf("There must be at least two arguments.")
+	}
+
+	groupName := args[0]
+	if !isValidName(groupName) {
+		return fmt.Errorf("Not a valid group name: %q", groupName)
+	}
+
+	cfg, err := readConfig(filename)
+	if err != nil {
+		return err
+	}
+	if !isGroupName(groupName, cfg) {
+		return fmt.Errorf("Not an existing group name: %q", groupName)
+	}
+
+	members := removeDuplicates(args[1:])
+	oldMembers := cfg.Groups[groupName]
+	cfg.Groups[groupName] = subtractSlices(oldMembers, members)
+
+	if len(cfg.Groups[groupName]) == 0 {
+		delete(cfg.Groups, groupName)
+	}
+
+	return writeConfig(cfg, filename)
+}
+
 // isValidMember takes a member string given as an argument, and returns nil
 // when the member string is valid. Otherwise, an error is returned inicating
 // the reason why the given member string is not valid.
@@ -120,6 +167,25 @@ func removeDuplicates(s []string) []string {
 		if !used[elem] {
 			result = append(result, elem)
 			used[elem] = true
+		}
+	}
+
+	return result
+}
+
+// subtractSlices takes two slices and returns a new slice formed by removing
+// all the elements in s2 from s1.
+func subtractSlices(s1, s2 []string) []string {
+	result := make([]string, 0, len(s1))
+
+	m := map[string]bool{}
+	for _, e2 := range s2 {
+		m[e2] = true
+	}
+
+	for _, e1 := range s1 {
+		if !m[e1] {
+			result = append(result, e1)
 		}
 	}
 
