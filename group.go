@@ -13,7 +13,6 @@ import (
 )
 
 // TODO(youngseokyoon): implement the following sub-commands.
-//  - rename:    rename a group
 //  - delete:    delete a group
 //  - list:      list all the groups and their members
 //  - clear-all: delete all the existing device groups
@@ -21,7 +20,11 @@ import (
 // TODO(youngseokyoon): use the groups for filtering devices.
 
 var cmdMadbGroup = &cmdline.Command{
-	Children:         []*cmdline.Command{cmdMadbGroupAdd, cmdMadbGroupRemove},
+	Children: []*cmdline.Command{
+		cmdMadbGroupAdd,
+		cmdMadbGroupRemove,
+		cmdMadbGroupRename,
+	},
 	Name:             "group",
 	DontInheritFlags: true,
 	Short:            "Manage device groups",
@@ -136,6 +139,54 @@ func runMadbGroupRemove(env *cmdline.Env, args []string, filename string) error 
 	if len(cfg.Groups[groupName]) == 0 {
 		delete(cfg.Groups, groupName)
 	}
+
+	return writeConfig(cfg, filename)
+}
+
+var cmdMadbGroupRename = &cmdline.Command{
+	Runner: subCommandRunnerWithFilepath{runMadbGroupRename, getDefaultConfigFilePath},
+	Name:   "rename",
+	Short:  "Rename an existing device group",
+	Long: `
+Renames an existing device group.
+`,
+	ArgsName: "<old_name> <new_name>",
+	ArgsLong: `
+<old_name> is the name of an existing device group.
+
+<new_name> is the new name for the existing group.
+This must be an alpha-numeric string with no special characters or spaces,
+and must not conflict with another existing device or group name.
+`,
+}
+
+func runMadbGroupRename(env *cmdline.Env, args []string, filename string) error {
+	// Check if the arguments are valid.
+	if len(args) != 2 {
+		return env.UsageErrorf("There must be exactly two arguments.")
+	}
+
+	oldName, newName := args[0], args[1]
+	if !isValidName(oldName) {
+		return fmt.Errorf("Not a valid group name: %q", oldName)
+	}
+	if !isValidName(newName) {
+		return fmt.Errorf("Not a valid group name: %q", newName)
+	}
+
+	cfg, err := readConfig(filename)
+	if err != nil {
+		return err
+	}
+	if !isGroupName(oldName, cfg) {
+		return fmt.Errorf("Not an existing group name: %q", oldName)
+	}
+	if isNameInUse(newName, cfg) {
+		return fmt.Errorf("The provided name is already in use: %q", newName)
+	}
+
+	cfg.Groups[newName] = cfg.Groups[oldName]
+	delete(cfg.Groups, oldName)
 
 	return writeConfig(cfg, filename)
 }

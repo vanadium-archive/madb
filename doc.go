@@ -233,6 +233,7 @@ Usage:
 The madb group commands are:
    add         Add members to a device group
    remove      Remove members from a device group
+   rename      Rename an existing device group
 
 Madb group add - Add members to a device group
 
@@ -268,6 +269,19 @@ This name must be an existing device group name.
 
 <member> is a member specifier, which can be one of device serial, qualifier,
 device index (e.g., '@1', '@2'), device nickname, or another device group.
+
+Madb group rename - Rename an existing device group
+
+Renames an existing device group.
+
+Usage:
+   madb group rename [flags] <old_name> <new_name>
+
+<old_name> is the name of an existing device group.
+
+<new_name> is the new name for the existing group. This must be an alpha-numeric
+string with no special characters or spaces, and must not conflict with another
+existing device or group name.
 
 Madb install - Install your app on all devices
 

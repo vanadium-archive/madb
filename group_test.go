@@ -224,3 +224,101 @@ func TestMadbGroupRemove(t *testing.T) {
 
 	runGroupTests(t, tests)
 }
+
+func TestMadbGroupRename(t *testing.T) {
+	tests := []testSequence{
+		{
+			{
+				runMadbGroupRename,
+				[]string{},
+				map[string][]string{},
+				true,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP1"},
+				map[string][]string{},
+				true,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP1", "GROUP2"},
+				map[string][]string{},
+				true,
+			},
+		},
+		{
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP1", "SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"},
+				map[string][]string{"GROUP1": []string{"SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"}},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP2", "SERIAL3", "NICKNAME4"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"},
+					"GROUP2": []string{"SERIAL3", "NICKNAME4"},
+				},
+				false,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP1", "GROUP3"},
+				map[string][]string{
+					"GROUP2": []string{"SERIAL3", "NICKNAME4"},
+					"GROUP3": []string{"SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"},
+				},
+				false,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP2", "_!@#"},
+				map[string][]string{
+					"GROUP2": []string{"SERIAL3", "NICKNAME4"},
+					"GROUP3": []string{"SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"},
+				},
+				true,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP2", "GROUP3"},
+				map[string][]string{
+					"GROUP2": []string{"SERIAL3", "NICKNAME4"},
+					"GROUP3": []string{"SERIAL1", "NICKNAME1", "NICKNAME2", "SERIAL2", "NICKNAME3"},
+				},
+				true,
+			},
+		},
+	}
+
+	runGroupTests(t, tests)
+}
+
+func TestMadbGroupRenameNameConflict(t *testing.T) {
+	tests := []testSequence{
+		{
+			{
+				runMadbNameSet,
+				[]string{"SERIAL1", "NICKNAME1"},
+				map[string][]string{},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP1", "SERIAL1"},
+				map[string][]string{"GROUP1": []string{"SERIAL1"}},
+				false,
+			},
+			{
+				runMadbGroupRename,
+				[]string{"GROUP1", "NICKNAME1"},
+				map[string][]string{"GROUP1": []string{"SERIAL1"}},
+				true,
+			},
+		},
+	}
+
+	runGroupTests(t, tests)
+}
