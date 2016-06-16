@@ -13,15 +13,15 @@ import (
 )
 
 // TODO(youngseokyoon): implement the following sub-commands.
-//  - delete:    delete a group
 //  - list:      list all the groups and their members
-//  - clear-all: delete all the existing device groups
 
 // TODO(youngseokyoon): use the groups for filtering devices.
 
 var cmdMadbGroup = &cmdline.Command{
 	Children: []*cmdline.Command{
 		cmdMadbGroupAdd,
+		cmdMadbGroupClearAll,
+		cmdMadbGroupDelete,
 		cmdMadbGroupRemove,
 		cmdMadbGroupRename,
 	},
@@ -92,6 +92,65 @@ func runMadbGroupAdd(env *cmdline.Env, args []string, filename string) error {
 	}
 
 	cfg.Groups[groupName] = removeDuplicates(append(oldMembers, members...))
+	return writeConfig(cfg, filename)
+}
+
+var cmdMadbGroupClearAll = &cmdline.Command{
+	Runner: subCommandRunnerWithFilepath{runMadbGroupClearAll, getDefaultConfigFilePath},
+	Name:   "clear-all",
+	Short:  "Clear all the existing device groups",
+	Long: `
+Clears all the existing device groups.
+`,
+}
+
+func runMadbGroupClearAll(env *cmdline.Env, args []string, filename string) error {
+	cfg, err := readConfig(filename)
+	if err != nil {
+		return err
+	}
+
+	// Reset the groups
+	cfg.Groups = make(map[string][]string)
+
+	return writeConfig(cfg, filename)
+}
+
+var cmdMadbGroupDelete = &cmdline.Command{
+	Runner: subCommandRunnerWithFilepath{runMadbGroupDelete, getDefaultConfigFilePath},
+	Name:   "delete",
+	Short:  "Delete an existing device group",
+	Long: `
+Deletes an existing device group.
+`,
+	ArgsName: "<group_name1> [<group_name2> ...]",
+	ArgsLong: `
+<group_name> the name of an existing device group.
+You can specify more than one group names.
+`,
+}
+
+func runMadbGroupDelete(env *cmdline.Env, args []string, filename string) error {
+	// Check if the arguments are valid.
+	if len(args) < 1 {
+		return env.UsageErrorf("There must be at least one argument.")
+	}
+
+	cfg, err := readConfig(filename)
+	if err != nil {
+		return err
+	}
+	for _, groupName := range args {
+		if !isGroupName(groupName, cfg) {
+			return fmt.Errorf("Not an existing group name: %q", groupName)
+		}
+	}
+
+	// Delete the groups
+	for _, groupName := range args {
+		delete(cfg.Groups, groupName)
+	}
+
 	return writeConfig(cfg, filename)
 }
 

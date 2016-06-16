@@ -144,6 +144,128 @@ func TestMadbGroupAddNameConflict(t *testing.T) {
 	runGroupTests(t, tests)
 }
 
+func TestMadbGroupClearAll(t *testing.T) {
+	tests := []testSequence{
+		{
+			{
+				runMadbGroupClearAll,
+				[]string{},
+				map[string][]string{},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP1", "SERIAL1", "NICKNAME1"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+				},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP2", "SERIAL2", "NICKNAME2"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+				},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP3", "SERIAL3", "NICKNAME3"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+					"GROUP3": []string{"SERIAL3", "NICKNAME3"},
+				},
+				false,
+			},
+			{
+				runMadbGroupClearAll,
+				[]string{},
+				map[string][]string{},
+				false,
+			},
+		},
+	}
+
+	runGroupTests(t, tests)
+}
+
+func TestMadbGroupDelete(t *testing.T) {
+	tests := []testSequence{
+		{
+			{
+				runMadbGroupDelete,
+				[]string{},
+				map[string][]string{},
+				true,
+			},
+			{
+				runMadbGroupDelete,
+				[]string{"GROUP1"},
+				map[string][]string{},
+				true,
+			},
+		},
+		{
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP1", "SERIAL1", "NICKNAME1"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+				},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP2", "SERIAL2", "NICKNAME2"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+				},
+				false,
+			},
+			{
+				runMadbGroupAdd,
+				[]string{"GROUP3", "SERIAL3", "NICKNAME3"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+					"GROUP3": []string{"SERIAL3", "NICKNAME3"},
+				},
+				false,
+			},
+			{
+				runMadbGroupDelete,
+				[]string{"GROUP4"},
+				map[string][]string{
+					"GROUP1": []string{"SERIAL1", "NICKNAME1"},
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+					"GROUP3": []string{"SERIAL3", "NICKNAME3"},
+				},
+				true,
+			},
+			{
+				runMadbGroupDelete,
+				[]string{"GROUP3", "GROUP1"},
+				map[string][]string{
+					"GROUP2": []string{"SERIAL2", "NICKNAME2"},
+				},
+				false,
+			},
+			{
+				runMadbGroupDelete,
+				[]string{"GROUP2"},
+				map[string][]string{},
+				false,
+			},
+		},
+	}
+
+	runGroupTests(t, tests)
+}
+
 func TestMadbGroupRemove(t *testing.T) {
 	tests := []testSequence{
 		{

@@ -232,6 +232,8 @@ Usage:
 
 The madb group commands are:
    add         Add members to a device group
+   clear-all   Clear all the existing device groups
+   delete      Delete an existing device group
    remove      Remove members from a device group
    rename      Rename an existing device group
 
@@ -255,6 +257,23 @@ This name must not be an existing device nickname.
 
 <member> is a member specifier, which can be one of device serial, qualifier,
 device index (e.g., '@1', '@2'), device nickname, or another device group.
+
+Madb group clear-all - Clear all the existing device groups
+
+Clears all the existing device groups.
+
+Usage:
+   madb group clear-all [flags]
+
+Madb group delete - Delete an existing device group
+
+Deletes an existing device group.
+
+Usage:
+   madb group delete [flags] <group_name1> [<group_name2> ...]
+
+<group_name> the name of an existing device group. You can specify more than one
+group names.
 
 Madb group remove - Remove members from a device group
 
