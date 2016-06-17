@@ -6,6 +6,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sort"
+
+	"github.com/olekukonko/tablewriter"
 
 	"v.io/x/lib/cmdline"
 )
@@ -155,13 +159,23 @@ func runMadbNameList(env *cmdline.Env, args []string, filename string) error {
 		return err
 	}
 
-	// TODO(youngseokyoon): pretty print this.
-	fmt.Println("Serial          Nickname")
-	fmt.Println("========================")
+	tw := tablewriter.NewWriter(os.Stdout)
+	tw.SetHeader([]string{"Serial", "Nickname"})
+	tw.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	tw.SetAutoFormatHeaders(false)
+	tw.SetAlignment(tablewriter.ALIGN_LEFT)
 
+	data := make([][]string, 0, len(cfg.Names))
 	for nickname, serial := range cfg.Names {
-		fmt.Printf("%v\t%v\n", serial, nickname)
+		data = append(data, []string{serial, nickname})
 	}
+
+	sort.Sort(byFirstElement(data))
+
+	for _, row := range data {
+		tw.Append(row)
+	}
+	tw.Render()
 
 	return nil
 }

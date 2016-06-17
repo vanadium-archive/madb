@@ -6,14 +6,15 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
+
 	"v.io/x/lib/cmdline"
 )
-
-// TODO(youngseokyoon): implement the following sub-commands.
-//  - list:      list all the groups and their members
 
 // TODO(youngseokyoon): use the groups for filtering devices.
 
@@ -22,6 +23,7 @@ var cmdMadbGroup = &cmdline.Command{
 		cmdMadbGroupAdd,
 		cmdMadbGroupClearAll,
 		cmdMadbGroupDelete,
+		cmdMadbGroupList,
 		cmdMadbGroupRemove,
 		cmdMadbGroupRename,
 	},
@@ -152,6 +154,42 @@ func runMadbGroupDelete(env *cmdline.Env, args []string, filename string) error 
 	}
 
 	return writeConfig(cfg, filename)
+}
+
+var cmdMadbGroupList = &cmdline.Command{
+	Runner: subCommandRunnerWithFilepath{runMadbGroupList, getDefaultConfigFilePath},
+	Name:   "list",
+	Short:  "List all the existing device groups",
+	Long: `
+Lists the name and members of all the existing device groups.
+`,
+}
+
+func runMadbGroupList(env *cmdline.Env, args []string, filename string) error {
+	cfg, err := readConfig(filename)
+	if err != nil {
+		return err
+	}
+
+	tw := tablewriter.NewWriter(os.Stdout)
+	tw.SetHeader([]string{"Group Name", "Members"})
+	tw.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	tw.SetAutoFormatHeaders(false)
+	tw.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	data := make([][]string, 0, len(cfg.Groups))
+	for group, members := range cfg.Groups {
+		data = append(data, []string{group, strings.Join(members, " ")})
+	}
+
+	sort.Sort(byFirstElement(data))
+
+	for _, row := range data {
+		tw.Append(row)
+	}
+	tw.Render()
+
+	return nil
 }
 
 var cmdMadbGroupRemove = &cmdline.Command{

@@ -266,6 +266,26 @@ func TestMadbGroupDelete(t *testing.T) {
 	runGroupTests(t, tests)
 }
 
+func ExampleMadbGroupList() {
+	filename := tempFilename(nil)
+	defer os.Remove(filename)
+
+	// Set some device groups.
+	runMadbGroupAdd(nil, []string{"GROUP1", "SERIAL1", "NICKNAME1", "@1"}, filename)
+	runMadbGroupAdd(nil, []string{"GROUP2", "GROUP1", "SERIAL2"}, filename)
+
+	// Call the list command.
+	runMadbGroupList(nil, []string{}, filename)
+
+	// Output:
+	// +------------+----------------------+
+	// | Group Name | Members              |
+	// +------------+----------------------+
+	// | GROUP1     | SERIAL1 NICKNAME1 @1 |
+	// | GROUP2     | GROUP1 SERIAL2       |
+	// +------------+----------------------+
+}
+
 func TestMadbGroupRemove(t *testing.T) {
 	tests := []testSequence{
 		{

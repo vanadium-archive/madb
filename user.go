@@ -6,7 +6,11 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sort"
 	"strconv"
+
+	"github.com/olekukonko/tablewriter"
 
 	"v.io/x/lib/cmdline"
 )
@@ -165,13 +169,23 @@ func runMadbUserList(env *cmdline.Env, args []string, filename string) error {
 		return err
 	}
 
-	// TODO(youngseokyoon): pretty print this.
-	fmt.Println("Device Serial    User ID")
-	fmt.Println("========================")
+	tw := tablewriter.NewWriter(os.Stdout)
+	tw.SetHeader([]string{"Serial", "User ID"})
+	tw.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	tw.SetAutoFormatHeaders(false)
+	tw.SetAlignment(tablewriter.ALIGN_LEFT)
 
-	for s, u := range cfg.UserIDs {
-		fmt.Printf("%v\t%v\n", s, u)
+	data := make([][]string, 0, len(cfg.UserIDs))
+	for serial, userID := range cfg.UserIDs {
+		data = append(data, []string{serial, userID})
 	}
+
+	sort.Sort(byFirstElement(data))
+
+	for _, row := range data {
+		tw.Append(row)
+	}
+	tw.Render()
 
 	return nil
 }

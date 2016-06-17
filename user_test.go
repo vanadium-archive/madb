@@ -86,6 +86,28 @@ func TestMadbUserUnset(t *testing.T) {
 	}
 }
 
+func ExampleMadbUserList() {
+	filename := tempFilename(nil)
+	defer os.Remove(filename)
+
+	// Set up some default users first.
+	runMadbUserSet(nil, []string{"SERIAL1", "0"}, filename)
+	runMadbUserSet(nil, []string{"SERIAL2", "0"}, filename)
+	runMadbUserSet(nil, []string{"SERIAL3", "10"}, filename)
+
+	// Call the list command.
+	runMadbUserList(nil, []string{}, filename)
+
+	// Output:
+	// +---------+---------+
+	// | Serial  | User ID |
+	// +---------+---------+
+	// | SERIAL1 | 0       |
+	// | SERIAL2 | 0       |
+	// | SERIAL3 | 10      |
+	// +---------+---------+
+}
+
 func TestMadbUserClearAll(t *testing.T) {
 	filename := tempFilename(t)
 	defer os.Remove(filename)

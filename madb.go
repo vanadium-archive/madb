@@ -804,7 +804,8 @@ func isStringInSlice(str string, slice []string) bool {
 
 type pathProvider func() (string, error)
 
-// subCommandRunnerWithFilepath is an adapter that turns the madb name/user subcommand functions into cmdline.Runners.
+// subCommandRunnerWithFilepath is an adapter that turns the madb
+// {group|name|user} subcommand functions into cmdline.Runners.
 type subCommandRunnerWithFilepath struct {
 	subCmd func(*cmdline.Env, []string, string) error
 	pp     pathProvider
@@ -812,8 +813,8 @@ type subCommandRunnerWithFilepath struct {
 
 var _ cmdline.Runner = (*subCommandRunnerWithFilepath)(nil)
 
-// Run implements the cmdline.Runner interface by providing the default name file path
-// as the third string argument of the underlying run function.
+// Run implements the cmdline.Runner interface by providing the default name
+// file path as the third string argument of the underlying run function.
 func (f subCommandRunnerWithFilepath) Run(env *cmdline.Env, args []string) error {
 	p, err := f.pp()
 	if err != nil {
@@ -822,3 +823,11 @@ func (f subCommandRunnerWithFilepath) Run(env *cmdline.Env, args []string) error
 
 	return f.subCmd(env, args, p)
 }
+
+// byFirstElement is used for sorting the groups by their names. Used in various
+// list commands.
+type byFirstElement [][]string
+
+func (a byFirstElement) Len() int           { return len(a) }
+func (a byFirstElement) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byFirstElement) Less(i, j int) bool { return a[i][0] < a[j][0] }

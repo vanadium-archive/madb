@@ -110,8 +110,26 @@ func TestMadbNameUnset(t *testing.T) {
 	}
 }
 
-func TestMadbNameList(t *testing.T) {
-	// TODO(youngseokyoon): add some tests for the list command.
+func ExampleMadbNameList() {
+	filename := tempFilename(nil)
+	defer os.Remove(filename)
+
+	// Set up some nicknames first.
+	runMadbNameSet(nil, []string{"SERIAL1", "NICKNAME1"}, filename)
+	runMadbNameSet(nil, []string{"SERIAL2", "NICKNAME2"}, filename)
+	runMadbNameSet(nil, []string{"SERIAL3", "NICKNAME3"}, filename)
+
+	// Call the list command.
+	runMadbNameList(nil, []string{}, filename)
+
+	// Output:
+	// +---------+-----------+
+	// | Serial  | Nickname  |
+	// +---------+-----------+
+	// | SERIAL1 | NICKNAME1 |
+	// | SERIAL2 | NICKNAME2 |
+	// | SERIAL3 | NICKNAME3 |
+	// +---------+-----------+
 }
 
 func TestMadbNameClearAll(t *testing.T) {
