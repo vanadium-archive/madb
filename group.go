@@ -8,15 +8,12 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
 
 	"v.io/x/lib/cmdline"
 )
-
-// TODO(youngseokyoon): use the groups for filtering devices.
 
 var cmdMadbGroup = &cmdline.Command{
 	Children: []*cmdline.Command{
@@ -83,7 +80,7 @@ func runMadbGroupAdd(env *cmdline.Env, args []string, filename string) error {
 
 	members := removeDuplicates(args[1:])
 	for _, member := range members {
-		if err := isValidMember(member, cfg); err != nil {
+		if err := isValidDeviceSpecifier(member); err != nil {
 			return fmt.Errorf("Invalid member %q: %v", member, err)
 		}
 	}
@@ -288,24 +285,6 @@ func runMadbGroupRename(env *cmdline.Env, args []string, filename string) error 
 	return writeConfig(cfg, filename)
 }
 
-// isValidMember takes a member string given as an argument, and returns nil
-// when the member string is valid. Otherwise, an error is returned inicating
-// the reason why the given member string is not valid.
-// TODO(youngseokyoon): reuse this function in madb.go.
-func isValidMember(member string, cfg *config) error {
-	if strings.HasPrefix(member, "@") {
-		index, err := strconv.Atoi(member[1:])
-		if err != nil || index <= 0 {
-			return fmt.Errorf("Invalid device specifier %q. '@' sign must be followed by a numeric device index starting from 1.", member)
-		}
-		return nil
-	} else if !isValidSerial(member) && !isValidName(member) {
-		return fmt.Errorf("Invalid device specifier %q. Not a valid serial or a nickname.", member)
-	}
-
-	return nil
-}
-
 // removeDuplicates takes a string slice and removes all the duplicates.
 func removeDuplicates(s []string) []string {
 	result := make([]string, 0, len(s))
@@ -338,4 +317,40 @@ func subtractSlices(s1, s2 []string) []string {
 	}
 
 	return result
+}
+
+// expandGroups takes a slice of device specifier tokens and returns a new slice
+// where all the group name tokens are expanded to include all their members.
+// The expansion process is transitive; if a group includes other groups, all
+// the members of the other groups are also included in the returned slice. Each
+// group is processed at most once, in order to avoid infinite loops.
+func expandGroups(tokens []string, cfg *config) []string {
+	expanded := make([]string, 0, len(tokens))
+
+	queue := make([]string, len(tokens))
+	copy(queue, tokens)
+
+	visitedGroups := make(map[string]bool)
+
+	for len(queue) > 0 {
+		// Pop a token from the queue
+		token := queue[0]
+		queue = queue[1:]
+
+		if isGroupName(token, cfg) {
+			// If this group was already processed before, ignore and proceed
+			// to the next token to avoid infinite loops.
+			if visitedGroups[token] {
+				continue
+			}
+			visitedGroups[token] = true
+
+			// Otherwise, expand the group and add all the members to the queue.
+			queue = append(queue, cfg.Groups[token]...)
+		} else {
+			expanded = append(expanded, token)
+		}
+	}
+
+	return expanded
 }

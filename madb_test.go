@@ -213,16 +213,30 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		flags deviceFlags
 		want  []device
 	}{
-		{deviceFlags{false, false, ""}, allDevices},                        // Nothing is specified
-		{deviceFlags{true, true, ""}, allDevices},                          // Both -d and -e are specified
-		{deviceFlags{true, false, ""}, []device{d1, d2, d3}},               // Only -d is specified
-		{deviceFlags{false, true, ""}, []device{e1, e2}},                   // Only -e is specified
-		{deviceFlags{false, false, "device:bullhead"}, []device{d1, d3}},   // Device qualifier
-		{deviceFlags{false, false, "ARMv7,SecondPhone"}, []device{e1, d3}}, // Nicknames
-		{deviceFlags{false, false, "@2,@4"}, []device{d2, d3}},             // Device Indices
-		{deviceFlags{true, false, "ARMv7"}, []device{d1, d2, e1, d3}},      // Combinations
-		{deviceFlags{false, true, "model:Nexus_9"}, []device{d2, e1, e2}},  // Combinations
-		{deviceFlags{false, false, "@1,SecondPhone"}, []device{d1, d3}},    // Combinations
+		{deviceFlags{false, false, ""}, allDevices},                                         // Nothing is specified
+		{deviceFlags{true, true, ""}, allDevices},                                           // Both -d and -e are specified
+		{deviceFlags{true, false, ""}, []device{d1, d2, d3}},                                // Only -d is specified
+		{deviceFlags{false, true, ""}, []device{e1, e2}},                                    // Only -e is specified
+		{deviceFlags{false, false, "device:bullhead"}, []device{d1, d3}},                    // Device qualifier
+		{deviceFlags{false, false, "ARMv7,SecondPhone"}, []device{e1, d3}},                  // Nicknames
+		{deviceFlags{false, false, "@2,@4"}, []device{d2, d3}},                              // Device Indices
+		{deviceFlags{false, false, "NormalGroup"}, []device{d1, d2, e1}},                    // Normal group
+		{deviceFlags{false, false, "SelfRefGroup"}, []device{d2}},                           // Self referencing group
+		{deviceFlags{false, false, "CyclicGroup1"}, []device{d1, d2, d3}},                   // Cyclic group inclusion
+		{deviceFlags{true, false, "ARMv7"}, []device{d1, d2, e1, d3}},                       // Combinations
+		{deviceFlags{false, true, "model:Nexus_9"}, []device{d2, e1, e2}},                   // Combinations
+		{deviceFlags{false, false, "@1,SecondPhone"}, []device{d1, d3}},                     // Combinations
+		{deviceFlags{false, false, "SecondPhone,NormalGroup,@1"}, []device{d1, d2, e1, d3}}, // Combinations
+	}
+
+	cfg := &config{
+		Groups: map[string][]string{
+			"NormalGroup":  []string{"deviceid01", "deviceid02", "@3"},
+			"SelfRefGroup": []string{"deviceid02", "SelfRefGroup"},
+			"CyclicGroup1": []string{"CyclicGroup2", "@1"},
+			"CyclicGroup2": []string{"@2", "CyclicGroup3"},
+			"CyclicGroup3": []string{"deviceid03", "CyclicGroup1"},
+		},
 	}
 
 	for i, testCase := range testCases {
@@ -230,7 +244,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		allEmulatorsFlag = testCase.flags.allEmulators
 		devicesFlag = testCase.flags.devices
 
-		got, err := filterSpecifiedDevices(allDevices)
+		got, err := filterSpecifiedDevices(allDevices, cfg)
 		if err != nil {
 			t.Fatalf(err.Error())
 		}

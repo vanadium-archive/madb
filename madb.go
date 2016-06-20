@@ -52,7 +52,7 @@ var (
 func init() {
 	cmdMadb.Flags.BoolVar(&allDevicesFlag, "d", false, `Restrict the command to only run on real devices.`)
 	cmdMadb.Flags.BoolVar(&allEmulatorsFlag, "e", false, `Restrict the command to only run on emulators.`)
-	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), or nicknames (set by 'madb name'). A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1. Command will be run only on specified devices.`)
+	cmdMadb.Flags.StringVar(&devicesFlag, "n", "", `Comma-separated device serials, qualifiers, device indices (e.g., '@1', '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group'). A device index is specified by an '@' sign followed by the index of the device in the output of 'adb devices' command, starting from 1. Command will be run only on specified devices.`)
 	cmdMadb.Flags.BoolVar(&sequentialFlag, "seq", false, `Run the command sequentially, instead of running it in parallel.`)
 	cmdMadb.Flags.StringVar(&prefixFlag, "prefix", "name", `Specify which output prefix to use. You can choose from the following options:
     name   - Display the nickname of the device. The serial number is used instead if the
@@ -147,16 +147,11 @@ func (d device) displayName() string {
 }
 
 // Runs "adb devices -l" command, and parses the result to get all the device serial numbers.
-func getDevices(configFile string) ([]device, error) {
+func getDevices(cfg *config) ([]device, error) {
 	sh := gosh.NewShell(nil)
 	defer sh.Cleanup()
 
 	output := sh.Cmd("adb", "devices", "-l").Stdout()
-
-	cfg, err := readConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
 
 	return parseDevicesOutput(output, cfg)
 }
@@ -233,12 +228,17 @@ func getSpecifiedDevices() ([]device, error) {
 		return nil, err
 	}
 
-	allDevices, err := getDevices(configFile)
+	cfg, err := readConfig(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	filtered, err := filterSpecifiedDevices(allDevices)
+	allDevices, err := getDevices(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	filtered, err := filterSpecifiedDevices(allDevices, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ type deviceSpec struct {
 	token string
 }
 
-func filterSpecifiedDevices(devices []device) ([]device, error) {
+func filterSpecifiedDevices(devices []device, cfg *config) ([]device, error) {
 	// If no device specifier flags are set, run on all devices and emulators.
 	if noDevicesSpecified() {
 		return devices, nil
@@ -265,18 +265,17 @@ func filterSpecifiedDevices(devices []device) ([]device, error) {
 
 	var specs = []deviceSpec{}
 	if devicesFlag != "" {
+		// Check if the provided specifiers are all valid.
 		tokens := strings.Split(devicesFlag, ",")
 		for _, token := range tokens {
-			if strings.HasPrefix(token, "@") {
-				index, err := strconv.Atoi(token[1:])
-				if err != nil || index <= 0 {
-					return nil, fmt.Errorf("Invalid device specifier %q. '@' sign must be followed by a numeric device index starting from 1.", token)
-				}
-				specs = append(specs, deviceSpec{index, ""})
-			} else {
-				specs = append(specs, deviceSpec{0, token})
+			if err := isValidDeviceSpecifier(token); err != nil {
+				return nil, err
 			}
 		}
+
+		// Expand all the groups and get the device specs.
+		tokens = expandGroups(tokens, cfg)
+		specs = getDeviceSpecsFromTokens(tokens, cfg)
 	}
 
 	for _, d := range devices {
@@ -286,6 +285,23 @@ func filterSpecifiedDevices(devices []device) ([]device, error) {
 	}
 
 	return result, nil
+}
+
+// getDeviceSpecsFromTokens takes device specifier tokens and turns them into
+// the corresponding deviceSpec structs.
+func getDeviceSpecsFromTokens(tokens []string, cfg *config) []deviceSpec {
+	specs := make([]deviceSpec, 0, len(tokens)*2)
+
+	for _, token := range tokens {
+		if strings.HasPrefix(token, "@") {
+			index, _ := strconv.Atoi(token[1:])
+			specs = append(specs, deviceSpec{index, ""})
+		} else {
+			specs = append(specs, deviceSpec{0, token})
+		}
+	}
+
+	return specs
 }
 
 func noDevicesSpecified() bool {
@@ -453,6 +469,23 @@ func isValidSerial(serial string) bool {
 func isValidName(name string) bool {
 	r := regexp.MustCompile(`^\w+$`)
 	return r.MatchString(name)
+}
+
+// isValidMember takes a member string given as an argument, and returns nil
+// when the member string is valid. Otherwise, an error is returned indicating
+// the reason why the given member string is not valid.
+func isValidDeviceSpecifier(member string) error {
+	if strings.HasPrefix(member, "@") {
+		index, err := strconv.Atoi(member[1:])
+		if err != nil || index <= 0 {
+			return fmt.Errorf("Invalid device specifier %q. '@' sign must be followed by a numeric device index starting from 1.", member)
+		}
+		return nil
+	} else if !isValidSerial(member) && !isValidName(member) {
+		return fmt.Errorf("Invalid device specifier %q. Not a valid serial or a nickname.", member)
+	}
+
+	return nil
 }
 
 type subCommandRunner struct {

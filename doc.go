@@ -38,9 +38,10 @@ The madb flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -102,9 +103,10 @@ The madb clear-data flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -156,9 +158,10 @@ The madb exec flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -208,9 +211,10 @@ The madb extern flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -365,9 +369,10 @@ The madb install flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -470,9 +475,10 @@ The madb shell flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -560,9 +566,10 @@ The madb start flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -621,9 +628,10 @@ The madb stop flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
@@ -681,9 +689,10 @@ The madb uninstall flags are:
    Restrict the command to only run on emulators.
  -n=
    Comma-separated device serials, qualifiers, device indices (e.g., '@1',
-   '@2'), or nicknames (set by 'madb name'). A device index is specified by an
-   '@' sign followed by the index of the device in the output of 'adb devices'
-   command, starting from 1. Command will be run only on specified devices.
+   '@2'), nicknames (set by 'madb name'), or group names (set by 'madb group').
+   A device index is specified by an '@' sign followed by the index of the
+   device in the output of 'adb devices' command, starting from 1. Command will
+   be run only on specified devices.
  -prefix=name
    Specify which output prefix to use. You can choose from the following
    options:
