@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -581,6 +582,123 @@ func TestIsValidName(t *testing.T) {
 	for _, test := range tests {
 		if got := isValidName(test.input); got != test.want {
 			t.Fatalf("unmatched results for nickname '%v': got %v, want %v", test.input, got, test.want)
+		}
+	}
+}
+
+func TestConfigMigration(t *testing.T) {
+	tests := []struct {
+		configDir string
+		fileMap   map[string]string
+		want      config
+	}{
+		{
+			"testdata/configs/newFormat",
+			map[string]string{"config": "config"},
+			config{
+				Version: version,
+				Names:   map[string]string{"nickname01": "serial01", "nickname02": "serial02"},
+				Groups:  map[string][]string{},
+				UserIDs: map[string]string{"serial01": "10"},
+			},
+		},
+		{
+			"testdata/configs/oldFormatBoth",
+			map[string]string{"": "config", "nicknames": "nicknames.bak", "users": "users.bak"},
+			config{
+				Version: version,
+				Names:   map[string]string{"nickname01": "serial01", "nickname02": "serial02"},
+				Groups:  map[string][]string{},
+				UserIDs: map[string]string{"serial01": "10"},
+			},
+		},
+		{
+			"testdata/configs/oldFormatNicknamesOnly",
+			map[string]string{"": "config", "nicknames": "nicknames.bak"},
+			config{
+				Version: version,
+				Names:   map[string]string{"nickname01": "serial01", "nickname02": "serial02"},
+				Groups:  map[string][]string{},
+				UserIDs: map[string]string{},
+			},
+		},
+		{
+			"testdata/configs/oldFormatUsersOnly",
+			map[string]string{"": "config", "users": "users.bak"},
+			config{
+				Version: version,
+				Names:   map[string]string{},
+				Groups:  map[string][]string{},
+				UserIDs: map[string]string{"serial01": "10"},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		// Copy the files in configDir to a temporary directory.
+		tempConfigDir, err := ioutil.TempDir("", "madbConfigTest")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tempConfigDir)
+
+		files, err := ioutil.ReadDir(test.configDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, file := range files {
+			src, err := os.Open(filepath.Join(test.configDir, file.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			dst, err := os.Create(filepath.Join(tempConfigDir, file.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, err = io.Copy(dst, src)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src.Close()
+			dst.Close()
+		}
+
+		// Run the migration.
+		migrateOldConfigFiles(tempConfigDir)
+
+		// Check the resulting config
+		cfg, err := readConfig(filepath.Join(tempConfigDir, "config"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := *cfg, test.want; !reflect.DeepEqual(got, want) {
+			t.Fatalf("unmatched results for tests[%v]: got %v, want %v", i, got, want)
+		}
+
+		// Check the file mapping.
+		for oldFile, newFile := range test.fileMap {
+			if oldFile == "" {
+				if _, err := os.Stat(filepath.Join(tempConfigDir, newFile)); os.IsNotExist(err) {
+					t.Fatalf("missing an expected config file %q", newFile)
+				}
+				continue
+			}
+
+			oldBytes, err := ioutil.ReadFile(filepath.Join(test.configDir, oldFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			newBytes, err := ioutil.ReadFile(filepath.Join(tempConfigDir, newFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if bytes.Compare(oldBytes, newBytes) != 0 {
+				t.Fatalf("unmatched file contents between %q and %q.", oldFile, newFile)
+			}
 		}
 	}
 }

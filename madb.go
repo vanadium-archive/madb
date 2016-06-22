@@ -362,6 +362,14 @@ type config struct {
 	UserIDs map[string]string
 }
 
+func newConfig() *config {
+	return &config{
+		Names:   make(map[string]string),
+		Groups:  make(map[string][]string),
+		UserIDs: make(map[string]string),
+	}
+}
+
 // Returns the config dir located at "~/.madb"
 func getConfigDir() (string, error) {
 	home := os.Getenv("HOME")
@@ -374,7 +382,66 @@ func getConfigDir() (string, error) {
 		return "", err
 	}
 
+	if err := migrateOldConfigFiles(configDir); err != nil {
+		fmt.Fprintf(os.Stderr, "WARNING: Could not successfully migrate the old config files to the newer format: %v", err)
+	}
+
 	return configDir, nil
+}
+
+// migrateOldConfigFiles checks if there are old config files (for madb v1.x) in
+// the provided config directory. If there are, it migrates these configs to the
+// new format, so that users can preserve their device nicknames and user IDs
+// when upgrading madb to a newer version.
+// TODO(youngseokyoon): remove this migration code in the future.
+func migrateOldConfigFiles(configDir string) error {
+	// Do not try migrating if the new format "config" file already exists.
+	configFile := filepath.Join(configDir, "config")
+	if _, err := os.Stat(configFile); err == nil {
+		return nil
+	}
+
+	cfg := newConfig()
+	if err := migrateOldConfig(configDir, "nicknames", &cfg.Names); err != nil {
+		return err
+	}
+	if err := migrateOldConfig(configDir, "users", &cfg.UserIDs); err != nil {
+		return err
+	}
+	return writeConfig(cfg, configFile)
+}
+
+// migrateOldConfig reads an old config file, which contains a JSON-encoded map,
+// and writes the contents to the given map pointer (data).
+func migrateOldConfig(configDir, filename string, data *map[string]string) error {
+	configFile := filepath.Join(configDir, filename)
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		return nil
+	}
+
+	f, err := os.Open(configFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+
+	if err := decoder.Decode(data); err != nil {
+		data = new(map[string]string)
+		return fmt.Errorf("Could not read the old config file %q: %v", filename, err)
+	}
+
+	fmt.Printf("NOTE: Migrating the %q file to the newer format.\n", filename)
+
+	// Rename the old config as a backup
+	if err := os.Rename(configFile, configFile+".bak"); err != nil {
+		return fmt.Errorf("Could not rename the %q file: %v", filename, err)
+	}
+
+	fmt.Printf("NOTE: The backup file can be found at %q.\n", filepath.Join(configDir, filename+".bak"))
+
+	return nil
 }
 
 // getDefaultConfigFilePath returns the default location of the config file.
@@ -391,13 +458,10 @@ func getDefaultConfigFilePath() (string, error) {
 // When the file does not exist, it returns an empty config with the members
 // initialized as empty maps.
 func readConfig(filename string) (*config, error) {
-	result := new(config)
+	result := newConfig()
 
 	// The file may not exist or be empty when there are no stored data.
 	if stat, err := os.Stat(filename); os.IsNotExist(err) || (err == nil && stat.Size() == 0) {
-		result.Names = make(map[string]string)
-		result.Groups = make(map[string][]string)
-		result.UserIDs = make(map[string]string)
 		return result, nil
 	}
 
