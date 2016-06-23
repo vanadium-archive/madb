@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"v.io/x/lib/gosh"
@@ -210,7 +211,7 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		devices      string
 	}
 
-	testCases := []struct {
+	tests := []struct {
 		flags deviceFlags
 		want  []device
 	}{
@@ -240,18 +241,15 @@ func TestGetSpecifiedDevices(t *testing.T) {
 		},
 	}
 
-	for i, testCase := range testCases {
-		allDevicesFlag = testCase.flags.allDevices
-		allEmulatorsFlag = testCase.flags.allEmulators
-		devicesFlag = testCase.flags.devices
-
-		got, err := filterSpecifiedDevices(allDevices, cfg)
+	for i, test := range tests {
+		tokens := strings.Split(test.flags.devices, ",")
+		got, err := filterSpecifiedDevices(allDevices, cfg, test.flags.allDevices, test.flags.allEmulators, tokens)
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
 
-		if !reflect.DeepEqual(got, testCase.want) {
-			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, testCase.want)
+		if !reflect.DeepEqual(got, test.want) {
+			t.Fatalf("unmatched results for testCases[%v]: got %v, want %v", i, got, test.want)
 		}
 	}
 }

@@ -22,6 +22,7 @@ The madb commands are:
    group       Manage device groups
    install     Install your app on all devices
    name        Manage device nicknames
+   resolve     Resolve device specifiers into device serials
    shell       Run the provided adb shell command on all devices and emulators
                concurrently
    start       Launch your app on all devices
@@ -454,6 +455,24 @@ Clears all the currently stored nicknames of device serials.
 
 Usage:
    madb name clear-all [flags]
+
+Madb resolve - Resolve device specifiers into device serials
+
+Resolves the provided device specifiers and prints out their device serials,
+each in a separate line. This command only displays the unique serials of the
+devices that are currently available.
+
+This command can be useful when you want to use the device nicknames and groups
+defined by madb in other command line tools. For example, to run a flutter app
+on "MyTablet" device, you can use the following command (in Bash):
+
+    flutter run --device $(madb resolve MyTablet)
+
+Usage:
+   madb resolve [flags] <specifier1> [<specifier2> ...]
+
+<specifier> can be anything that is accepted in the '-n' flag (see 'madb help').
+It can be a device serial, qualifier, index, nickname, or a device group name.
 
 Madb shell - Run the provided adb shell command on all devices and emulators concurrently
 

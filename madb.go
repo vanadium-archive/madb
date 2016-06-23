@@ -88,6 +88,7 @@ var cmdMadb = &cmdline.Command{
 		cmdMadbGroup,
 		cmdMadbInstall,
 		cmdMadbName,
+		cmdMadbResolve,
 		cmdMadbShell,
 		cmdMadbStart,
 		cmdMadbStop,
@@ -233,12 +234,13 @@ func getSpecifiedDevices() ([]device, error) {
 		return nil, err
 	}
 
-	allDevices, err := getDevices(cfg)
+	devices, err := getDevices(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	filtered, err := filterSpecifiedDevices(allDevices, cfg)
+	tokens := strings.Split(devicesFlag, ",")
+	filtered, err := filterSpecifiedDevices(devices, cfg, allDevicesFlag, allEmulatorsFlag, tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -255,18 +257,22 @@ type deviceSpec struct {
 	token string
 }
 
-func filterSpecifiedDevices(devices []device, cfg *config) ([]device, error) {
+func filterSpecifiedDevices(devices []device, cfg *config, allDevices, allEmulators bool, tokens []string) ([]device, error) {
+	// If the tokens only contains one empty string, treat it as an empty slice.
+	if len(tokens) == 1 && tokens[0] == "" {
+		tokens = []string{}
+	}
+
 	// If no device specifier flags are set, run on all devices and emulators.
-	if noDevicesSpecified() {
+	if allDevices == false && allEmulators == false && len(tokens) == 0 {
 		return devices, nil
 	}
 
 	result := make([]device, 0, len(devices))
 
 	var specs = []deviceSpec{}
-	if devicesFlag != "" {
+	if len(tokens) > 0 {
 		// Check if the provided specifiers are all valid.
-		tokens := strings.Split(devicesFlag, ",")
 		for _, token := range tokens {
 			if err := isValidDeviceSpecifier(token); err != nil {
 				return nil, err
@@ -279,7 +285,7 @@ func filterSpecifiedDevices(devices []device, cfg *config) ([]device, error) {
 	}
 
 	for _, d := range devices {
-		if shouldIncludeDevice(d, specs) {
+		if shouldIncludeDevice(d, specs, allDevices, allEmulators) {
 			result = append(result, d)
 		}
 	}
@@ -304,18 +310,12 @@ func getDeviceSpecsFromTokens(tokens []string, cfg *config) []deviceSpec {
 	return specs
 }
 
-func noDevicesSpecified() bool {
-	return allDevicesFlag == false &&
-		allEmulatorsFlag == false &&
-		devicesFlag == ""
-}
-
-func shouldIncludeDevice(d device, specs []deviceSpec) bool {
-	if allDevicesFlag && d.Type == realDevice {
+func shouldIncludeDevice(d device, specs []deviceSpec, allDevices, allEmulators bool) bool {
+	if allDevices && d.Type == realDevice {
 		return true
 	}
 
-	if allEmulatorsFlag && d.Type == emulator {
+	if allEmulators && d.Type == emulator {
 		return true
 	}
 
