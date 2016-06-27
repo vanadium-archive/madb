@@ -594,7 +594,7 @@ func TestConfigMigration(t *testing.T) {
 			"testdata/configs/newFormat",
 			map[string]string{"config": "config"},
 			config{
-				Version: version,
+				Version: "v2.0.0",
 				Names:   map[string]string{"nickname01": "serial01", "nickname02": "serial02"},
 				Groups:  map[string][]string{},
 				UserIDs: map[string]string{"serial01": "10"},
