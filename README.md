@@ -35,7 +35,7 @@ installed and accessible from `PATH`. ADB comes with the Android SDK.
 
 On Mac OS X, `madb` can be installed using [Homebrew](http://brew.sh/).
 
-    $ brew tap baku-io/baku
+    $ brew tap vanadium/baku
     $ brew install madb
 
 To upgrade `madb` to the most recent version,
